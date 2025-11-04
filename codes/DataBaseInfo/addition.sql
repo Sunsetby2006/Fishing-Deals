@@ -51,7 +51,7 @@ insert into products (nombre, descripcion, precio, stock, user_id, image_url, ca
 ('Pelota', 'pelota inflable para playa y albercas', 199, 100, 9, 'https://github.com/Sunsetby2006/Fishing-Deals/blob/main/Imagenes/pelota.jpeg?raw=true', 6),
 ('Raquetas', 'Set de dos raquetas para jugar tenis', 700, 30, 8, 'https://github.com/Sunsetby2006/Fishing-Deals/blob/main/Imagenes/raqueta.jpeg?raw=true', 6),
 ('Tachones', 'Tallas 24-29', 799, 80, 9, 'https://github.com/Sunsetby2006/Fishing-Deals/blob/main/Imagenes/zapatillas.jpeg?raw=true', 6),
-('Set de Baseball', 'Sin descripción', 899, 3, 9, 'https://github.com/Sunsetby2006/Fishing-Deals/blob/main/Imagenes/equip.webp?raw=true', 6)
+('Set de Baseball', 'Sin descripción', 899, 3, 9, 'https://github.com/Sunsetby2006/Fishing-Deals/blob/main/Imagenes/equip.webp?raw=true', 6);
 
 -- reseñas
 insert into reviews (user_id, product_id, score, coment, fecha) values
