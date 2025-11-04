@@ -4,7 +4,7 @@ use datos_tienda;
 insert into users (nombre, email, contrasena, direccion, rol) values
 ('Omar Fernando Guevara Cavazos', 'omar.correo@gmail.com', 'Sunsetr2d2', 'Cumbres', 'Cliente'),
 ('Ivan Gerardo Tenorio Silverio', 'ivan.correo@gmail.com', 'contrasena', 'dir', 'Cliente'),
-('Diego Alejandro Medellin Mendez', 'diego.correo@gmail.com', 'contrasena', 'dir', 'Cliente'),
+('Diego Alejandro Medellin Mendez', 'diego.correo@gmail.com', 'Degozc33', 'dir', 'Cliente'),
 ('Mariana de la Garza Contel', 'mariana.correo@gmail.com', 'contrasena', 'dir', 'Cliente'),
 ('Natalia Paez Casados', 'natalia.correo@gmail.com', 'contrasena', 'dir', 'Cliente'),
 ('Brissia Smith Olguin', 'brissia.correo@gmail.com', 'contrasena', 'dir', 'Cliente'),
