@@ -11,6 +11,12 @@ create table if not exists users (
     rol enum ('Cliente', 'Vendedor') not null
 );
 
+-- categorías
+create table if not exists categories (
+	category_id int auto_increment primary key,
+    nombre varchar(50) not null unique
+);
+
 -- productos
 create table if not exists products (
 	product_id int auto_increment primary key,
