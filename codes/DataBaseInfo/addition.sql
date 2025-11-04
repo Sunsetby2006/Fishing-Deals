@@ -55,17 +55,17 @@ insert into products (nombre, descripcion, precio, stock, user_id, image_url, ca
 
 -- reseñas
 insert into reviews (user_id, product_id, score, coment, fecha) values
-(3,1,2,'No corre genshin impact ni valorant', 2025-11-04),
-(5,2,3,'Buenísima, es muy rápida, y me encanta', 2025-11-04),
-(4,3,4,'Muy recomendado, llegó rápido y es cómodo para jugar', 2025-11-04),
-(2,4,4,'Muy bueno, pero requiere baterías', 2025-11-04),
-(1,5,5,'Un buen libro para pasar el rato, me lo acabé en una semana', 2025-10-04),
-(4,9,4,'Grande y se ve bien en mi sala', 2025-10-04),
-(3,10,5,'Lindo', 2025-10-04),
-(1,12,4,'Le gustó a mi hermana', 2025-10-04),
-(3,13,5,'Muy cómodo y el color combina con mi sala', 2025-9-04),
-(5,14,4,'Le gustó a mi sobrina', 2025-9-04),
-(2,16,1,'No me gustó el color al final', 2025-9-04),
-(1,17,5,'Todo lo que cargo cupo en la mochila', 2025-8-04),
-(6,20,5,'Funciona', 2025-8-04),
-(1,22,4,'Los mangos tienen buen agarre', 2025-7-04);
+(3,1,2,'No corre genshin impact ni valorant', '2025-11-04'),
+(5,2,3,'Buenísima, es muy rápida, y me encanta', '2025-11-04'),
+(4,3,4,'Muy recomendado, llegó rápido y es cómodo para jugar', '2025-11-04'),
+(2,4,4,'Muy bueno, pero requiere baterías', '2025-11-04'),
+(1,5,5,'Un buen libro para pasar el rato, me lo acabé en una semana', '2025-11-04'),
+(4,9,4,'Grande y se ve bien en mi sala', '2025-11-05'),
+(3,10,5,'Lindo', '2025-11-05'),
+(1,12,4,'Le gustó a mi hermana', '2025-11-05'),
+(3,13,5,'Muy cómodo y el color combina con mi sala', '2025-11-05'),
+(5,14,4,'Le gustó a mi sobrina', '2025-11-05'),
+(2,16,1,'No me gustó el color al final', '2025-11-05'),
+(1,17,5,'Todo lo que cargo cupo en la mochila', '2025-11-06'),
+(6,20,5,'Funciona', '2025-11-02'),
+(1,22,4,'Los mangos tienen buen agarre', '2025-11-01');
