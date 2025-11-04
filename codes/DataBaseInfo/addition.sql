@@ -7,7 +7,7 @@ insert into users (nombre, email, contrasena, direccion, rol) values
 ('Diego Alejandro Medellin Mendez', 'diego.correo@gmail.com', 'Degozc33', 'San Pedro', 'Cliente'),
 ('Mariana de la Garza Contel', 'mariana.correo@gmail.com', 'contrasena', 'dir', 'Cliente'),
 ('Natalia Paez Casados', 'natalia.correo@gmail.com', 'contrasena', 'dir', 'Cliente'),
-('Brissia Smith Olguin', 'brissia.correo@gmail.com', 'contrasena', 'dir', 'Cliente'),
+('Brissia Smith Olguin', 'brissia.correo@gmail.com', 'Brissia26', 'Cumbres', 'Cliente'),
 ('Maria Fernanda Guevara Cavazos', 'fer.correo@gmail.com', 'vendedora1', 'Cumbres', 'Vendedor'),
 ('Anakin Skywalker', 'ani.correo@gmail.com', 'LaFuerza123', 'Naboo', 'Vendedor'),
 ('Billie Eillish ', 'billie.correo@gmail.com', 'OceanEyes', 'USA', 'Vendedor');
