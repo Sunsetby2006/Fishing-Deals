@@ -25,6 +25,7 @@ create table if not exists products (
     precio decimal(10,2) not null,
     stock int not null,
     user_id int not null,
+	category_id int not null,
     image_url varchar(500)not null,
     foreign key(user_id) references users(user_id)
 		on delete cascade
