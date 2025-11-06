@@ -75,3 +75,37 @@ create table if not exists reviews (
         on update cascade,
 	unique (user_id, product_id)
 )
+
+-- wishlist
+create table if not exists wishlist (
+	wishlist_id int auto_increment primary key,
+    user_id int not null,
+    product_id int not null,
+    fecha_agregado timestamp default current_timestamp,
+    foreign key (user_id) references users(user_id)
+		on delete cascade
+        on update cascade,
+	foreign key (product_id) references products(product_id)
+		on delete cascade
+        on update cascade,
+	unique (user_id, product_id)
+);
+
+-- carrito
+create table if not exists cart (
+	cart_id int auto_increment primary key,
+    user_id int not null,
+    product_id int not null,
+    cantidad int not null default 1,
+    fecha_agregado timestamp default current_timestamp,
+    foreign key (user_id) references users(user_id)
+		on delete cascade
+        on update cascade,
+	foreign key (product_id) references products(product_id)
+		on delete cascade
+        on update cascade,
+	unique (user_id, product_id),
+    check (cantidad > 0)
+);
+
+
