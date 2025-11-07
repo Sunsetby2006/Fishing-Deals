@@ -1,0 +1,20 @@
+{% extends "leyout.html" %} {% block title %}Profile{% endblock %} {%
+block content %}
+    <div class="row justify-contect-center">
+        <div class="card col-5" style="width: 18rem">
+            <div class="card-body">
+                <h5 class="card-title">Hola <mark>{{data_user[3]}}</mark></h5>
+                <p class="card-text">Esta es una lista de tus datos</p>
+            </div>
+            <ul class="list-group list-group-flush">
+                <!-- Agregar correo y telefono -->
+                <li class="list-group-item">Primer nombre: <mark>{{ data_user[1]}}</mark></li>
+                <li class="list-group-item">: Usuario<mark>{{ data_user[2]}}</mark></li>
+                <li class="list-group-item">telefono: <mark>{{ data_user[4]}}</mark></li>
+                <li class="list-group-item">correo: <mark>{{ data_user[4]}}</mark></li>
+            </ul>
+        </div>
+    </div>
+
+
+{% endblock %}
