@@ -69,3 +69,26 @@ insert into reviews (user_id, product_id, score, coment, fecha) values
 (1,17,5,'Todo lo que cargo cupo en la mochila', '2025-11-06'),
 (6,20,5,'Funciona', '2025-11-02'),
 (1,22,4,'Los mangos tienen buen agarre', '2025-11-01');
+
+-- wishlist
+insert into wishlist (user_id, product_id) values
+(1, 1),
+(1, 2),
+(2, 5),
+(3, 3),
+(3, 4),
+(4, 9),
+(5, 13),
+(6, 17);
+
+-- carrito
+insert into cart (user_id, product_id, cantidad) values
+(1, 3, 2),
+(1, 10, 5),
+(2, 1, 1),
+(3, 5, 3),
+(3, 6, 2),
+(4, 11, 10),
+(5, 14, 1),
+(6, 20, 1);
+

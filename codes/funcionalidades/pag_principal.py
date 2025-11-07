@@ -172,4 +172,42 @@ def get_all_products():
     finally:
         if conn:
             cursor.close()
+
             conn.close()
+
+#endopint de filtrado
+@app.get("/api/filtrado")
+def filtrar_productos_por_precio(precio_min, precio_max):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    consulta = """
+    SELECT nombre, descripcion, precio, image_url
+    FROM products
+    WHERE precio BETWEEN %s AND %s
+    ORDER BY precio ASC
+    """
+    cursor.execute(consulta, (precio_min, precio_max))
+    resultados = cursor.fetchall()
+
+    return resultados
+
+print("Bienvenido al filtro de precios de Fishing Deals")
+try:
+    precio_min = float(input("Ingresa el precio mínimo: "))
+    precio_max = float(input("Ingresa el precio máximo: "))
+
+    productos = filtrar_productos_por_precio(precio_min, precio_max)
+
+    if productos:
+        print("\nProductos encontrados:")
+        for p in productos:
+            print(f"- {p['nombre']} (${p['precio']})")
+            print(f"  {p['descripcion']}")
+            print(f"  Imagen: {p['image_url']}\n")
+    else:
+        print("No se encontraron productos en ese rango.")
+except Exception as e:
+    print(f"Error en la consulta: {e}")
+    print(f"Traceback: {traceback.format_exc()}")
+    raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}") #ya solo falta hacerle un html
