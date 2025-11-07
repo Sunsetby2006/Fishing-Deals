@@ -1,10 +1,10 @@
 from conection import get_connection
 
+conexion = get_connection()
+
 print ("Bienvenido")
 usuario = input("Usuario: ")
 contraseña = input("Contraseña: ")
-
-conexion = get_connection()
 
 if conexion:
     cursor = conexion.cursor(dictionary = True)
@@ -23,6 +23,5 @@ if conexion:
             print("Usuario o contraseña incorrecta.")
     else:
         print("Usuario o contraseña incorrecta.")
-    conexion.close()
 else:
     print("No se pudo conectar a la base de datos")
