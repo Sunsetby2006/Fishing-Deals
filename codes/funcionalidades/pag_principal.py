@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from conection import get_connection
 from typing import List, Dict, Any
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import traceback
 
 app = FastAPI()
@@ -14,6 +15,149 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Modelos para autenticación
+class LoginRequest(BaseModel):
+    usuario: str
+    contraseña: str
+
+class RegisterRequest(BaseModel):
+    nombre: str
+    email: str
+    contraseña: str
+    direccion: str = ""
+
+# Endpoint para login
+@app.post("/api/login")
+def login(login_data: LoginRequest):
+    conn = get_connection()
+    if conn is None:
+        raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
+
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        # Buscar usuario por nombre (como en mostrar_detalles.py)
+        consulta = "SELECT * FROM users WHERE nombre = %s"
+        cursor.execute(consulta, (login_data.usuario,))
+        resultado = cursor.fetchone()
+
+        if resultado:
+            # Verificar contraseña
+            if resultado['contrasena'] == login_data.contraseña:
+                # Eliminar contraseña del response
+                user_info = {
+                    "user_id": resultado['user_id'],
+                    "nombre": resultado['nombre'],
+                    "email": resultado['email'],
+                    "direccion": resultado['direccion'],
+                    "rol": resultado['rol']
+                }
+                return {
+                    "success": True,
+                    "message": "Usuario autenticado",
+                    "user": user_info
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": "Contraseña incorrecta"
+                }
+        else:
+            return {
+                "success": False,
+                "message": "Usuario no encontrado"
+            }
+            
+    except Exception as e:
+        print(f"Error en login: {e}")
+        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
+    finally:
+        if conn:
+            cursor.close()
+            conn.close()
+
+# Endpoint para registro
+@app.post("/api/register")
+def register(register_data: RegisterRequest):
+    conn = get_connection()
+    if conn is None:
+        raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
+
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        # Verificar si el usuario ya existe
+        check_query = "SELECT * FROM users WHERE nombre = %s OR email = %s"
+        cursor.execute(check_query, (register_data.nombre, register_data.email))
+        existing_user = cursor.fetchone()
+        
+        if existing_user:
+            return {
+                "success": False,
+                "message": "El nombre de usuario o email ya existe"
+            }
+        
+        # Insertar nuevo usuario
+        insert_query = """
+        INSERT INTO users (nombre, email, contrasena, direccion, rol)
+        VALUES (%s, %s, %s, %s, 'cliente')
+        """
+        cursor.execute(insert_query, (
+            register_data.nombre,
+            register_data.email,
+            register_data.contraseña,
+            register_data.direccion
+        ))
+        conn.commit()
+        
+        # Obtener el ID del usuario recién creado
+        user_id = cursor.lastrowid
+        
+        return {
+            "success": True,
+            "message": "Usuario registrado exitosamente",
+            "user_id": user_id
+        }
+            
+    except Exception as e:
+        print(f"Error en registro: {e}")
+        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
+    finally:
+        if conn:
+            cursor.close()
+            conn.close()
+
+# Endpoint para obtener información del usuario
+@app.get("/api/user/{user_id}")
+def get_user_info(user_id: int):
+    conn = get_connection()
+    if conn is None:
+        raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
+
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        user_query = """
+        SELECT user_id, nombre, email, direccion, rol
+        FROM users 
+        WHERE user_id = %s
+        """
+        cursor.execute(user_query, (user_id,))
+        user_data = cursor.fetchone()
+
+        if not user_data:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+        return user_data
+        
+    except Exception as e:
+        print(f"Error en la consulta de usuario: {e}")
+        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
+    finally:
+        if conn:
+            cursor.close()
+            conn.close()
 
 # Endpoint para obtener el detalle de un producto específico
 @app.get("/api/product/{product_id}", response_model=Dict[str, Any])
@@ -61,22 +205,12 @@ def get_product_details(product_id: int):
             total_score = sum(review['score'] for review in reviews_list)
             average_score = round(total_score / total_reviews, 1)
 
-        # 3. Datos de ejemplo para las variantes - CORREGIDO
-        # Convertir el precio decimal a float antes de multiplicar
-        #precio_base = float(product_data['precio'])
-        #variants = [
-        #    {"etiqueta": "4 Piezas", "precio": precio_base},
-        #    {"etiqueta": "6 Piezas", "precio": precio_base * 1.5},
-        #    {"etiqueta": "8 Piezas", "precio": precio_base * 2},
-        #]
-        
-        # 4. Construir la respuesta final
+        # 3. Construir la respuesta final
         response_data = {
             "product": product_data,
             "reviews": reviews_list,
             "average_score": average_score,
             "total_reviews": total_reviews,
-        #    "variants": variants
         }
         
         print(f"Respuesta final: {response_data}")
@@ -144,7 +278,7 @@ def test_database():
 # Endpoint de prueba para verificar que el servidor funciona
 @app.get("/")
 def read_root():
-    return {"message": "Servidor FastAPI funcionando correctamente"}
+    return {"message": "Servidor FastAPI funcionando correctamente OwO"}
 
 # Endpoint para obtener todos los productos
 @app.get("/api/products")
@@ -172,42 +306,74 @@ def get_all_products():
     finally:
         if conn:
             cursor.close()
-
             conn.close()
 
-#endopint de filtrado
+# Endpoint de filtrado por precio
 @app.get("/api/filtrado")
-def filtrar_productos_por_precio(precio_min, precio_max):
+def filtrar_productos_por_precio(precio_min: float, precio_max: float):
     conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
+    if conn is None:
+        raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
 
-    consulta = """
-    SELECT nombre, descripcion, precio, image_url
-    FROM products
-    WHERE precio BETWEEN %s AND %s
-    ORDER BY precio ASC
+    try:
+        cursor = conn.cursor(dictionary=True)
+        consulta = """
+        SELECT product_id, nombre, descripcion, precio, image_url
+        FROM products
+        WHERE precio BETWEEN %s AND %s
+        ORDER BY precio ASC
+        """
+        cursor.execute(consulta, (precio_min, precio_max))
+        resultados = cursor.fetchall()
+        
+        return {
+            "filtro": {
+                "precio_min": precio_min,
+                "precio_max": precio_max
+            },
+            "productos": resultados,
+            "total_productos": len(resultados)
+        }
+        
+    except Exception as e:
+        print(f"Error en el filtrado: {e}")
+        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
+    finally:
+        if conn:
+            cursor.close()
+            conn.close()
+
+# Endpoint de busqueda
+@app.get("/api/buscar")
+def buscar_productos(query: str):
     """
-    cursor.execute(consulta, (precio_min, precio_max))
-    resultados = cursor.fetchall()
+    Busca productos en la base de datos cuyo nombre o descripción contenga el texto proporcionado.
+    """
+    conn = get_connection()
+    if not conn:
+        raise HTTPException(status_code=500, detail="No se pudo conectar a la base de datos")
 
-    return resultados
-
-print("Bienvenido al filtro de precios de Fishing Deals")
-try:
-    precio_min = float(input("Ingresa el precio mínimo: "))
-    precio_max = float(input("Ingresa el precio máximo: "))
-
-    productos = filtrar_productos_por_precio(precio_min, precio_max)
-
-    if productos:
-        print("\nProductos encontrados:")
-        for p in productos:
-            print(f"- {p['nombre']} (${p['precio']})")
-            print(f"  {p['descripcion']}")
-            print(f"  Imagen: {p['image_url']}\n")
-    else:
-        print("No se encontraron productos en ese rango.")
-except Exception as e:
-    print(f"Error en la consulta: {e}")
-    print(f"Traceback: {traceback.format_exc()}")
-    raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}") #ya solo falta hacerle un html
+    try:
+        cursor = conn.cursor(dictionary=True)
+        sql = """
+            SELECT product_id, nombre, descripcion, precio, stock, image_url
+            FROM products
+            WHERE nombre LIKE %s OR descripcion LIKE %s
+            LIMIT 20
+        """
+        like_query = f"%{query}%"
+        cursor.execute(sql, (like_query, like_query))
+        resultados = cursor.fetchall()
+        
+        return {
+            "query": query, 
+            "resultados": resultados,
+            "total_resultados": len(resultados)
+        }
+    except Exception as e:
+        print(f"Error en la búsqueda: {e}")
+        raise HTTPException(status_code=500, detail="Error en la búsqueda")
+    finally:
+        if conn:
+            cursor.close()
+            conn.close()
