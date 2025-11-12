@@ -75,7 +75,7 @@ def subir_item(user_id):
         cursor.close()
         conn.close()
 
-def ver_estats(sells):
+def ver_estats():
     conn= get_connection()
     if conn in None:
         print("No se puede conectar a la DB")
