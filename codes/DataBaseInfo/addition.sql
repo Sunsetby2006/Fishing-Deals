@@ -19,7 +19,8 @@ insert into categories (nombre) values
 ('Nuevos de temporada'),
 ('Hogar'),
 ('Escuela'),
-('Deportes');
+('Deportes'),
+('Nuevo');
 
 -- productos
 insert into products (nombre, descripcion, precio, stock, user_id, image_url, category_id) values
