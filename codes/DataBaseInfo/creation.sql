@@ -108,4 +108,16 @@ create table if not exists cart (
     check (cantidad > 0)
 );
 
-
+-- ventas
+create table if not exists sells (
+    sell_id in auto_increment primary key,
+    user_id in not null,
+    product_id int not null,
+    ganancia int not null,
+    foreign key(user_id) references users(user_id)
+        on delete cascade
+        on update cascade,
+    foreign key(product_id) references products(product_id)
+        on delete cascade
+        on update cascade,
+);
