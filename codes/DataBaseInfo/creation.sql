@@ -119,5 +119,5 @@ create table if not exists sells (
         on update cascade,
     foreign key(product_id) references products(product_id)
         on delete cascade
-        on update cascade,
+        on update cascade
 );
