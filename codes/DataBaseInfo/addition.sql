@@ -93,3 +93,30 @@ insert into cart (user_id, product_id, cantidad) values
 (5, 14, 1),
 (6, 20, 1);
 
+-- Pedidos
+insert into purchase (user_id, fecha, total, estado) values
+(1, '2025-11-06', 1960, 'Entregado'),      
+(1, '2025-11-07', 500, 'Enviado'),         
+(2, '2025-11-06', 22500, 'Enviado'),       
+(3, '2025-11-07', 1600, 'Preparando'),     
+(3, '2025-11-08', 1050, 'Entregado'),      
+(4, '2025-11-08', 700, 'Entregado'),       
+(5, '2025-11-09', 1149, 'Preparando'),     
+(6, '2025-11-09', 899, 'Enviando'),        
+(2, '2025-11-10', 35000, 'Entregado'),     
+(4, '2025-11-11', 8990, 'Preparando');     
+
+-- Detalle de pedidos
+insert into purchase_info (purchase_id, product_id, cantidad, precio_unitario) values
+(1, 3, 2, 980),      
+(2, 10, 5, 100),     
+(3, 1, 1, 22500),    
+(4, 5, 2, 300),      
+(4, 6, 2, 350),      
+(5, 17, 1, 1050),    
+(6, 22, 1, 700),     
+(7, 14, 1, 350),     
+(7, 16, 1, 799),     
+(8, 20, 1, 899),     
+(9, 2, 1, 35000),    
+(10, 9, 10, 899);    
