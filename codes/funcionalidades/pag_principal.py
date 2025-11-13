@@ -377,3 +377,180 @@ def buscar_productos(query: str):
         if conn:
             cursor.close()
             conn.close()
+
+# Endpoints para el panel de vendedor
+
+# Endpoint para subir producto
+@app.post("/api/vendedor/subir-producto")
+def subir_producto(product_data: dict):
+    conn = get_connection()
+    if conn is None:
+        raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
+
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        # Buscar categoría "Nuevo"
+        cursor.execute("SELECT category_id FROM categories WHERE nombre = %s", ("Nuevo",))
+        categoria = cursor.fetchone()
+        if not categoria:
+            raise HTTPException(status_code=404, detail="Categoría 'Nuevo' no encontrada")
+        
+        category_id = categoria["category_id"]
+
+        # Insertar producto
+        insert_query = """
+        INSERT INTO products (nombre, descripcion, precio, stock, user_id, category_id, image_url)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """
+        cursor.execute(insert_query, (
+            product_data["nombre"],
+            product_data["descripcion"], 
+            product_data["precio"],
+            product_data["stock"],
+            product_data["user_id"],
+            category_id,
+            product_data["image_url"]
+        ))
+        conn.commit()
+
+        product_id = cursor.lastrowid
+        
+        return {
+            "success": True,
+            "message": "Producto registrado exitosamente",
+            "product_id": product_id
+        }
+            
+    except Exception as e:
+        print(f"Error al subir producto: {e}")
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+    finally:
+        if conn:
+            cursor.close()
+            conn.close()
+
+#Endpoint para los tstats
+@app.get("/api/vendedor/estadisticas")
+def obtener_estadisticas(user_id: int):
+    conn = get_connection()
+    if conn is None:
+        raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
+
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        # Estadísticas desde purchase_info
+        cursor.execute("""
+            SELECT 
+                COUNT(*) as total_ventas,
+                COALESCE(SUM(pi.precio_unitario * pi.cantidad), 0) as ingresos_totales,
+                AVG(pi.precio_unitario * pi.cantidad) as promedio_venta,
+                MAX(pi.precio_unitario * pi.cantidad) as venta_maxima,
+                MIN(pi.precio_unitario * pi.cantidad) as venta_minima
+            FROM purchase_info pi
+            JOIN products p ON pi.product_id = p.product_id
+            WHERE p.user_id = %s
+        """, (user_id,))
+        
+        stats = cursor.fetchone()
+        
+        # Productos más vendidos desde purchase_info
+        cursor.execute("""
+            SELECT 
+                p.nombre as producto_nombre,
+                SUM(pi.cantidad) as unidades_vendidas,
+                SUM(pi.precio_unitario * pi.cantidad) as ganancia_total
+            FROM purchase_info pi
+            JOIN products p ON pi.product_id = p.product_id
+            WHERE p.user_id = %s
+            GROUP BY p.product_id, p.nombre
+            ORDER BY ganancia_total DESC
+            LIMIT 5
+        """, (user_id,))
+        
+        top_productos = cursor.fetchall()
+        
+        return {
+            "estadisticas": stats,
+            "top_productos": top_productos
+        }
+            
+    except Exception as e:
+        print(f"Error al obtener estadísticas: {e}")
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+    finally:
+        if conn:
+            cursor.close()
+            conn.close()
+
+# Endpoint para obtener historial de ventas
+@app.get("/api/vendedor/ventas")
+def obtener_ventas_vendedor(user_id: int):
+    conn = get_connection()
+    if conn is None:
+        raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
+
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        # Buscar en purchase_info donde el producto pertenezca al vendedor
+        cursor.execute("""
+            SELECT 
+                pi.info_id as venta_id,
+                p.nombre as producto_nombre,
+                pi.cantidad,
+                pi.precio_unitario,
+                pi.precio_unitario * pi.cantidad as ganancia_total,
+                u.nombre as comprador_nombre,
+                pur.fecha as fecha_venta,
+                pur.estado
+            FROM purchase_info pi
+            JOIN products p ON pi.product_id = p.product_id
+            JOIN purchase pur ON pi.purchase_id = pur.purchase_id
+            JOIN users u ON pur.user_id = u.user_id  -- El comprador
+            WHERE p.user_id = %s  -- El vendedor es el dueño del producto
+            ORDER BY pur.fecha DESC
+            LIMIT 20
+        """, (user_id,))
+        
+        ventas = cursor.fetchall()
+        
+        return {"ventas": ventas}
+            
+    except Exception as e:
+        print(f"Error al obtener ventas: {e}")
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+    finally:
+        if conn:
+            cursor.close()
+            conn.close()
+
+# Endpoint para obtener productos del vendedor
+@app.get("/api/vendedor/productos")
+def obtener_productos_vendedor(user_id: int):
+    conn = get_connection()
+    if conn is None:
+        raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
+
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("""
+            SELECT product_id, nombre, descripcion, precio, stock, image_url
+            FROM products 
+            WHERE user_id = %s
+            ORDER BY product_id DESC
+        """, (user_id,))
+        
+        productos = cursor.fetchall()
+        
+        return {"productos": productos}
+            
+    except Exception as e:
+        print(f"Error al obtener productos: {e}")
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+    finally:
+        if conn:
+            cursor.close()
+            conn.close()
