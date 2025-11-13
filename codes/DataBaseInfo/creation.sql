@@ -74,7 +74,7 @@ create table if not exists reviews (
 		on delete cascade
         on update cascade,
 	unique (user_id, product_id)
-)
+);
 
 -- wishlist
 create table if not exists wishlist (
@@ -110,8 +110,8 @@ create table if not exists cart (
 
 -- ventas
 create table if not exists sells (
-    sell_id in auto_increment primary key,
-    user_id in not null,
+    sell_id int auto_increment primary key,
+    user_id int not null,
     product_id int not null,
     ganancia int not null,
     foreign key(user_id) references users(user_id)
