@@ -4,6 +4,7 @@ from typing import List, Dict, Any
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import traceback
+from datetime import date
 
 app = FastAPI()
 
