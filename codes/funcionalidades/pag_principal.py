@@ -4,6 +4,7 @@ from typing import List, Dict, Any
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import traceback
+import sqlite3
 
 app = FastAPI()
 
@@ -549,6 +550,218 @@ def obtener_productos_vendedor(user_id: int):
             
     except Exception as e:
         print(f"Error al obtener productos: {e}")
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+    finally:
+        if conn:
+            cursor.close()
+            conn.close()
+
+
+# wishlist y carrito
+
+# Modelos para los datos
+class CarritoRequest(BaseModel):
+    producto_id: int
+
+class WishlistRequest(BaseModel):
+    producto_id: int
+
+# Endpoint para agregar al carrito
+@app.post("/api/carrito/agregar")
+def agregar_carrito(carrito_data: CarritoRequest, user_id: int = None):
+    if not user_id:
+        return {"exito": False, "mensaje": "Se requiere user_id"}
+    
+    conn = get_connection()
+    if conn is None:
+        raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
+
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        # Verificar si el producto ya está en el carrito
+        cursor.execute("""
+            SELECT * FROM cart 
+            WHERE user_id = %s AND product_id = %s
+        """, (user_id, carrito_data.producto_id))
+        existente = cursor.fetchone()
+
+        if existente:
+            # Actualizar cantidad si ya existe
+            cursor.execute("""
+                UPDATE cart SET cantidad = cantidad + 1 
+                WHERE user_id = %s AND product_id = %s
+            """, (user_id, carrito_data.producto_id))
+        else:
+            # Insertar nuevo producto al carrito
+            cursor.execute("""
+                INSERT INTO cart (user_id, product_id, cantidad)
+                VALUES (%s, %s, 1)
+            """, (user_id, carrito_data.producto_id))
+        
+        conn.commit()
+        return {"exito": True, "mensaje": "Producto agregado al carrito"}
+            
+    except Exception as e:
+        print(f"Error al agregar al carrito: {e}")
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+    finally:
+        if conn:
+            cursor.close()
+            conn.close()
+
+# Endpoint para obtener carrito
+@app.get("/api/carrito/obtener")
+def obtener_carrito(user_id: int):
+    conn = get_connection()
+    if conn is None:
+        raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
+
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("""
+            SELECT c.*, p.nombre, p.precio, p.image_url, p.stock
+            FROM cart c
+            JOIN products p ON c.product_id = p.product_id
+            WHERE c.user_id = %s
+            ORDER BY c.fecha_agregado DESC
+        """, (user_id,))
+        
+        productos = cursor.fetchall()
+        
+        return {"exito": True, "productos": productos}
+            
+    except Exception as e:
+        print(f"Error al obtener carrito: {e}")
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+    finally:
+        if conn:
+            cursor.close()
+            conn.close()
+
+# Endpoint para eliminar del carrito
+@app.post("/api/carrito/eliminar")
+def eliminar_carrito(carrito_data: CarritoRequest, user_id: int = None):
+    if not user_id:
+        return {"exito": False, "mensaje": "Se requiere user_id"}
+    
+    conn = get_connection()
+    if conn is None:
+        raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
+
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("""
+            DELETE FROM cart 
+            WHERE user_id = %s AND product_id = %s
+        """, (user_id, carrito_data.producto_id))
+        
+        conn.commit()
+        return {"exito": True, "mensaje": "Producto eliminado del carrito"}
+            
+    except Exception as e:
+        print(f"Error al eliminar del carrito: {e}")
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+    finally:
+        if conn:
+            cursor.close()
+            conn.close()
+
+# Endpoint para agregar a wishlist
+@app.post("/api/wishlist/agregar")
+def agregar_wishlist(wishlist_data: WishlistRequest, user_id: int = None):
+    if not user_id:
+        return {"exito": False, "mensaje": "Se requiere user_id"}
+    
+    conn = get_connection()
+    if conn is None:
+        raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
+
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        # Verificar si ya está en wishlist
+        cursor.execute("""
+            SELECT * FROM wishlist 
+            WHERE user_id = %s AND product_id = %s
+        """, (user_id, wishlist_data.producto_id))
+        existente = cursor.fetchone()
+
+        if existente:
+            return {"exito": False, "mensaje": "El producto ya está en tu wishlist"}
+        
+        # Insertar en wishlist
+        cursor.execute("""
+            INSERT INTO wishlist (user_id, product_id)
+            VALUES (%s, %s)
+        """, (user_id, wishlist_data.producto_id))
+        
+        conn.commit()
+        return {"exito": True, "mensaje": "Producto agregado a wishlist"}
+            
+    except Exception as e:
+        print(f"Error al agregar a wishlist: {e}")
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+    finally:
+        if conn:
+            cursor.close()
+            conn.close()
+
+# Endpoint para obtener wishlist
+@app.get("/api/wishlist/obtener")
+def obtener_wishlist(user_id: int):
+    conn = get_connection()
+    if conn is None:
+        raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
+
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("""
+            SELECT w.*, p.nombre, p.precio, p.image_url, p.stock
+            FROM wishlist w
+            JOIN products p ON w.product_id = p.product_id
+            WHERE w.user_id = %s
+            ORDER BY w.fecha_agregado DESC
+        """, (user_id,))
+        
+        productos = cursor.fetchall()
+        
+        return {"exito": True, "productos": productos}
+            
+    except Exception as e:
+        print(f"Error al obtener wishlist: {e}")
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+    finally:
+        if conn:
+            cursor.close()
+            conn.close()
+
+# Endpoint para eliminar de wishlist
+@app.post("/api/wishlist/eliminar")
+def eliminar_wishlist(wishlist_data: WishlistRequest, user_id: int = None):
+    if not user_id:
+        return {"exito": False, "mensaje": "Se requiere user_id"}
+    
+    conn = get_connection()
+    if conn is None:
+        raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
+
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute("""
+            DELETE FROM wishlist 
+            WHERE user_id = %s AND product_id = %s
+        """, (user_id, wishlist_data.producto_id))
+        
+        conn.commit()
+        return {"exito": True, "mensaje": "Producto eliminado de wishlist"}
+            
+    except Exception as e:
+        print(f"Error al eliminar de wishlist: {e}")
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
     finally:
         if conn:
