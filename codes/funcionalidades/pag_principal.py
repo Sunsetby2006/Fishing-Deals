@@ -766,4 +766,122 @@ def eliminar_wishlist(wishlist_data: WishlistRequest, user_id: int = None):
     finally:
         if conn:
             cursor.close()
+
             conn.close()
+
+# Modelo para los datos de la reseña
+class ReviewRequest(BaseModel):
+    user_id: int
+    product_id: int
+    score: int
+    coment: str
+
+# Endpoint para calificar producto
+@app.post("/api/reviews")
+def agregar_resena(review_data: ReviewRequest):
+    conn = get_connection()
+    if conn is None:
+        raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
+
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        # Validar que la calificación esté entre 1 y 5
+        if review_data.score < 1 or review_data.score > 5:
+            raise HTTPException(status_code=400, detail="La calificación debe estar entre 1 y 5")
+        
+        # Validar que el comentario no exceda 300 caracteres
+        if len(review_data.coment) > 300:
+            raise HTTPException(status_code=400, detail="El comentario no puede exceder 300 caracteres")
+        
+        # Verificar si el usuario ya reseñó este producto
+        cursor.execute("""
+            SELECT * FROM reviews
+            WHERE user_id = %s AND product_id = %s
+        """, (review_data.user_id, review_data.product_id))
+        existente = cursor.fetchone()
+
+        if existente:
+            raise HTTPException(status_code=400, detail="Ya has dejado una reseña para este producto")
+        
+        # Insertar la nueva reseña
+        fecha_actual = date.today()
+        cursor.execute("""
+            INSERT INTO reviews (user_id, product_id, score, coment, fecha)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (review_data.user_id, review_data.product_id, review_data.score, review_data.coment, fecha_actual))
+        
+        conn.commit()
+        
+        return {
+            "success": True,
+            "message": "Reseña guardada exitosamente",
+            "review_id": cursor.lastrowid
+        }
+            
+    except HTTPException:
+        # Re-lanzar excepciones HTTP
+        raise
+    except Exception as e:
+        print(f"Error al guardar reseña: {e}")
+        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
+    finally:
+        if conn:
+            cursor.close()
+            conn.close()
+
+#endpoint Checkout
+class CheckoutItem(BaseModel):
+    product_id: int
+    cantidad: int
+
+class CheckoutData(BaseModel):
+    user_id: int
+    items: List[CheckoutItem]
+
+@app.post("/api/checkout")
+def procesar_checkout(data: CheckoutData):
+    print("LLEGO ESTO:", data)
+
+    conn = get_connection()
+    if not conn:
+        raise HTTPException(status_code=500, detail="No se pudo conectar a la base de datos")
+
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        if not data.items:
+            raise HTTPException(status_code=400, detail="El checkout está vacío")
+
+        cursor.execute(
+            "INSERT INTO purchase (user_id, fecha, total, estado) VALUES (%s, NOW(), 0, 'Preparando')",
+            (data.user_id,)
+        )
+        purchase_id = cursor.lastrowid
+
+        total = 0
+
+        for item in data.items:
+            cursor.execute("SELECT precio FROM products WHERE product_id = %s", (item.product_id,))
+            precio = cursor.fetchone()[0]
+
+            total += precio * item.cantidad
+
+            cursor.execute(
+                "INSERT INTO purchase_info (purchase_id, product_id, cantidad, precio_unitario) VALUES (%s, %s, %s, %s)",
+                (purchase_id, item.product_id, item.cantidad, precio)
+            )
+
+        cursor.execute("UPDATE purchase SET total = %s WHERE purchase_id = %s", (total, purchase_id))
+
+        conn.commit()
+        return {"mensaje": "Pedido creado correctamente", "purchase_id": purchase_id}
+
+    except Exception as e:
+        print("ERROR EN CHECKOUT:", e)
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+    finally:
+        cursor.close()
+        conn.close()
