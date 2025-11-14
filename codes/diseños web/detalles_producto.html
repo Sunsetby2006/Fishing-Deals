@@ -163,6 +163,22 @@
             color: var(--color-star);
         }
 
+        .stars a {
+            text-decoration: none
+        }
+
+        .stars i {
+            font-size: 1rem;
+            color: var(--color-star);
+            cursor: pointer;
+            margin: 0px;
+            transition: color 0.3s;
+        }
+
+        .stars i:hover{
+            color: gold;
+        }
+
         .reviews-count {
             color: #666;
             font-size: 0.9rem;
@@ -308,6 +324,21 @@
             margin: 5px 0;
         }
 
+        .review-stars a {
+            text-decoration: none;
+        }
+
+        .review-stars a:visited i,
+        .review-stars a:link i,
+        .review-stars a:hover i,
+        .review-stars a:active i {
+            color: var(--color-star);
+        }
+
+        .review-stars i:hover {
+            color: gold;
+        }
+
         .review-date {
             color: #999;
             font-size: 0.85rem;
@@ -436,8 +467,16 @@
                 <!-- Calificaciones -->
                 <div class="ratings">
                     <span class="score" id="average-score-display">0.0</span>
-                    <span class="stars" id="stars-display">★★★★★</span>
-                    <span class="reviews-count">(<span id="total-reviews-display">0</span> reseñas)</span>
+                    <span class="stars" id="stars-display">
+                        <a href="#all-reviews-section"><i class="fa-regular fa-star"></i></a>
+                        <a href="#all-reviews-section"><i class="fa-regular fa-star"></i></a>
+                        <a href="#all-reviews-section"><i class="fa-regular fa-star"></i></a>
+                        <a href="#all-reviews-section"><i class="fa-regular fa-star"></i></a>
+                        <a href="#all-reviews-section"><i class="fa-regular fa-star"></i></a>
+                    </span>
+                    <span class="reviews-count">
+                        (<span id="total-reviews-display">0</span> reseñas)
+                    </span>
                 </div>
 
                 <!-- Precio -->
@@ -473,7 +512,7 @@
                 </div>
 
                 <!-- Todas las Reseñas -->
-                <div class="all-reviews-section" id="all-reviews-section" style="display: none;">
+                <div class="all-reviews-section" id="all-reviews-section">
                     <h3>Todas las Reseñas</h3>
                     <div id="reviews-list"></div>
                 </div>
@@ -494,14 +533,17 @@
                 const hasHalfStar = score % 1 >= 0.25 && score % 1 <= 0.75;
 
                 for (let i = 0; i < 5; i++) {
+                    let iconClass = '';
                     if (i < fullStars) {
-                        starsHtml += '<i class="fas fa-star"></i>';
+                        iconClass = 'fas fa-star';
                     } else if (i === fullStars && hasHalfStar) {
-                        starsHtml += '<i class="fas fa-star-half-alt"></i>';
+                        iconClass = 'fas fa-star-half-alt';
                     } else {
-                        starsHtml += '<i class="far fa-star"></i>';
+                        iconClass = 'far fa-star';
                     }
+                    starsHtml += `<a href="#all-reviews-section" class="star-link"><i class="${iconClass}"></i></a>`;
                 }
+
                 return starsHtml;
             }
 
@@ -542,6 +584,14 @@
                     document.getElementById('average-score-display').textContent = data.average_score.toFixed(1);
                     document.getElementById('total-reviews-display').textContent = data.total_reviews;
                     document.getElementById('stars-display').innerHTML = renderStars(data.average_score);
+                    document.querySelectorAll('.star-link').forEach(enlace => {
+                        enlace.addEventListener('click', (e) => {
+                            e.preventDefault(); // Evita el salto automático
+                            const reseñas = document.getElementById('all-reviews-section');
+                            reseñas.style.display = 'block'; // Muestra la sección si estaba oculta
+                            reseñas.scrollIntoView({ behavior: 'smooth' }); // Desplaza suavemente
+                        });
+                    });
 
 
                     // Cargar reseñas
