@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wishlist - Fishing Deals</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            color: #1c1c1c;
+        }
+
+        .header {
+            background-color: #003399;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+
+        .logo-text {
+            font-size: 1.3rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .header-icons {
+            display: flex;
+            gap: 20px;
+        }
+
+        .icono {
+            font-size: 1.3rem;
+            cursor: pointer;
+            color: white;
+        }
+
+        .contenedor {
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        .titulo {
+            color: #003399;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+
+        .wishlist-vacia {
+            text-align: center;
+            background: white;
+            padding: 60px 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .btn {
+            background-color: #005ce6;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 15px;
+        }
+
+        .producto {
+            background: white;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .producto img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+
+        .info {
+            flex: 1;
+        }
+
+        .precio {
+            color: #003399;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .btn-eliminar {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo-text" onclick="irAInicio()">Fishing Deals</div>
+        <div class="header-icons">
+            <i class="fas fa-user icono" onclick="irAPerfil()"></i>
+            <i class="far fa-star icono"></i>
+            <i class="fas fa-shopping-cart icono" onclick="irACarrito()"></i>
+        </div>
+    </header>
+
+    <div class="contenedor">
+        <h1 class="titulo">Mi Lista de Deseos</h1>
+        
+        <div id="wishlist">
+            <!-- Los productos aparecen aquí -->
+        </div>
+    </div>
+
+    <script>
+        // Función helper para hacer fetch con autenticación
+        async function fetchWithAuth(url, options = {}) {
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (!user) {
+                alert('Por favor inicia sesión');
+                window.location.href = 'home.html';
+                return null;
+            }
+
+            // Si es una petición POST, PUT, etc., agregar el user_id al body
+            if (options.method && options.method !== 'GET') {
+                if (options.body) {
+                    const body = JSON.parse(options.body);
+                    body.user_id = user.user_id;
+                    options.body = JSON.stringify(body);
+                } else {
+                    options.body = JSON.stringify({ user_id: user.user_id });
+                }
+            }
+
+            // Para peticiones GET, agregar user_id como query parameter
+            if (!options.method || options.method === 'GET') {
+                if (url.includes('?')) {
+                    url += `&user_id=${user.user_id}`;
+                } else {
+                    url += `?user_id=${user.user_id}`;
+                }
+            }
+
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers,
+                    },
+                    ...options
+                });
+                return await response.json();
+            } catch (error) {
+                console.error('Error en fetch:', error);
+                throw error;
+            }
+        }
+
+        function irAInicio() {
+            window.location.href = 'home.html';
+        }
+
+        function irACarrito() {
+            window.location.href = 'carrito.html';
+        }
+
+        function irAPerfil() {
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (user) {
+                alert(`Bienvenido ${user.nombre}`);
+            } else {
+                alert('Por favor inicia sesión');
+            }
+        }
+
+        async function cargarWishlist() {
+            try {
+                const datos = await fetchWithAuth('http://127.0.0.1:8000/api/wishlist/obtener');
+                
+                if (datos && datos.exito && datos.productos && datos.productos.length > 0) {
+                    mostrarProductos(datos.productos);
+                } else {
+                    mostrarWishlistVacia();
+                }
+            } catch (error) {
+                console.log('Error:', error);
+                mostrarWishlistVacia();
+            }
+        }
+
+        function mostrarWishlistVacia() {
+            document.getElementById('wishlist').innerHTML = `
+                <div class="wishlist-vacia">
+                    <h2>Tu lista de deseos está vacía</h2>
+                    <p>Agrega productos desde la página principal</p>
+                    <button class="btn" onclick="irAInicio()">Descubrir Productos</button>
+                </div>
+            `;
+        }
+
+        function mostrarProductos(productos) {
+            let html = '';
+            
+            productos.forEach(producto => {
+                html += `
+                    <div class="producto">
+                        <img src="${producto.image_url}" alt="${producto.nombre}">
+                        <div class="info">
+                            <h3>${producto.nombre}</h3>
+                            <p class="precio">$${parseFloat(producto.precio).toFixed(2)}</p>
+                        </div>
+                        <button class="btn-eliminar" onclick="eliminarProducto(${producto.product_id})">
+                            Quitar
+                        </button>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('wishlist').innerHTML = html;
+        }
+
+        async function eliminarProducto(productoId) {
+            if (!confirm('¿Eliminar de tu lista?')) return;
+            
+            try {
+                const datos = await fetchWithAuth('http://127.0.0.1:8000/api/wishlist/eliminar', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        producto_id: productoId
+                    })
+                });
+                
+                if (datos && datos.exito) {
+                    cargarWishlist();
+                } else {
+                    alert('Error al eliminar producto: ' + (datos ? datos.mensaje : 'Error desconocido'));
+                }
+            } catch (error) {
+                console.log('Error:', error);
+                alert('Error al eliminar producto');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', cargarWishlist);
+    </script>
+</body>
+</html>
