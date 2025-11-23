@@ -122,6 +122,7 @@ create table if not exists sells (
         on update cascade
 );
 
+-- descuentos
 create table if not exists discounts (
 	discount_id int auto_increment primary key,
     discount_name varchar(100) not null,
