@@ -293,7 +293,7 @@
             document.getElementById('total-section').innerHTML = `
                 <div class="total-container">
                     <h2>Total: <span class="total-precio">$${parseFloat(total).toFixed(2)}</span></h2>
-                    <button class="btn-comprar" onclick="realizarCompra()">Realizar Compra</button>
+                    <button class="btn-comprar" onclick="procederAlCheckout()">Realizar Compra</button>
                 </div>
             `;
             document.getElementById('total-section').style.display = 'block';
@@ -321,9 +321,67 @@
             }
         }
 
-        function realizarCompra() {
-            alert('Funcionalidad de compra en desarrollo...');
-            // Aquí puedes implementar el proceso de checkout
+        // Función para proceder al checkout desde el carrito
+        function procederAlCheckout() {
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (!user) {
+                alert('Por favor inicia sesión para continuar');
+                return;
+            }
+        
+            // Obtener items del carrito (usa tu función existente)
+            const itemsCarrito = obtenerItemsCarrito(); // Asegúrate de que esta función existe
+
+            if (!itemsCarrito || itemsCarrito.length === 0) {
+                alert('Tu carrito está vacío');
+                return;
+            }
+        
+            const checkoutData = {
+                items: itemsCarrito.map(item => ({
+                    product_id: item.product_id,
+                    cantidad: item.cantidad,
+                    nombre: item.nombre,
+                    precio: parseFloat(item.precio)
+                }))
+            };
+
+            // Función para obtener los items del carrito
+            function obtenerItemsCarrito() {
+                const productos = document.querySelectorAll('.producto');
+                const items = [];
+                
+                productos.forEach(producto => {
+                    // Extraer información del producto del HTML
+                    const nombre = producto.querySelector('h3').textContent;
+                    const precioText = producto.querySelector('.precio').textContent;
+                    const cantidadText = producto.querySelector('p:nth-child(3)').textContent;
+                    
+                    // Extraer valores numéricos
+                    const precio = parseFloat(precioText.replace('$', ''));
+                    const cantidad = parseInt(cantidadText.replace('Cantidad: ', ''));
+                    
+                    // Obtener product_id del evento onclick del botón eliminar
+                    const botonEliminar = producto.querySelector('.btn-eliminar');
+                    const onclickAttr = botonEliminar.getAttribute('onclick');
+                    const productId = parseInt(onclickAttr.match(/eliminarProducto\((\d+)\)/)[1]);
+                    
+                    items.push({
+                        product_id: productId,
+                        nombre: nombre,
+                        precio: precio,
+                        cantidad: cantidad
+                    });
+                });
+                
+                return items;
+            }
+        
+            // Guardar en sessionStorage
+            sessionStorage.setItem('checkoutData', JSON.stringify(checkoutData));
+
+            // Redirigir al checkout
+            window.location.href = 'simuladorPagos.html';
         }
 
         // Cargar carrito cuando se abre la página
