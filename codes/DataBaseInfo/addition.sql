@@ -120,3 +120,11 @@ insert into purchase_info (purchase_id, product_id, cantidad, precio_unitario) v
 (8, 20, 1, 899),     
 (9, 2, 1, 35000),    
 (10, 9, 10, 899);    
+
+-- Descuentos
+insert into discounts (discount_name, discount) values
+('BUENFIN2025', 500),
+('DESCUENTODEHOY', 250),
+('BLACKFRIDAY', 450),
+('BACKTOSCHOOL', 350),
+('MERRYCHRISTMAS', 550);
