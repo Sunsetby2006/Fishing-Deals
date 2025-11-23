@@ -121,3 +121,9 @@ create table if not exists sells (
         on delete cascade
         on update cascade
 );
+
+create table if not exists discounts (
+	discount_id int auto_increment primary key,
+    discount_name varchar(100) not null,
+    discount int not null
+);
