@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proceso de pago - Fishing Deals</title>
+    <link rel="stylesheet" href="stylePago.css">
+    <style>
+        /* Estilos adicionales para las nuevas funcionalidades */
+        .campo-valido { border-color: #28a745 !important; }
+        .campo-invalido { border-color: #dc3545 !important; }
+        .costo-envio { 
+            background: #f8f9fa; 
+            padding: 10px; 
+            border-radius: 5px; 
+            margin: 10px 0;
+            border-left: 4px solid #007bff;
+        }
+        .tiempo-contador {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #333;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+        }
+        .animacion-campo {
+            transition: all 0.3s ease;
+        }
+        .resumen-pedido {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #ddd;
+        }
+        .item-pedido {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .total-pedido {
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #003399;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #003399;
+        }
+        .cupon-section {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .cupon-input {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .cupon-input input {
+            flex: 1;
+        }
+        .cupon-valido {
+            color: #28a745;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        .cupon-invalido {
+            color: #dc3545;
+            margin-top: 5px;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            text-align: center;
+            display: none;
+        }
+    </style>
+</head>
+<body class="pago-simulado">
+    <div class="contenedor-direccion">
+        <header>
+            <h1>Finalizar Compra - Fishing Deals</h1>
+        </header>
+
+        <main>
+            <!-- Resumen del Pedido -->
+            <div class="resumen-pedido" id="resumen-pedido">
+                <h3>Resumen de tu pedido</h3>
+                <div id="items-pedido">
+                    <!-- Los items se cargarán dinámicamente -->
+                </div>
+                <div class="total-pedido">
+                    Total: $<span id="total-pedido">0.00</span>
+                </div>
+            </div>
+
+            <!-- Sección de Cupones -->
+            <div class="cupon-section">
+                <h3>Cupón de Descuento</h3>
+                <div class="cupon-input">
+                    <input type="text" id="codigo-cupon" placeholder="Ingresa tu código de cupón">
+                    <button id="aplicar-cupon" style="padding: 10px 15px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        Aplicar
+                    </button>
+                </div>
+                <div id="mensaje-cupon"></div>
+                <div id="descuento-aplicado" style="display: none;">
+                    <p>Descuento aplicado: -$<span id="monto-descuento">0</span></p>
+                    <p class="total-pedido">Total con descuento: $<span id="total-con-descuento">0.00</span></p>
+                </div>
+            </div>
+
+            <form class="formulario-pago" id="formulario-pago">
+                <section>
+                    <h2>Datos de domicilio</h2>
+
+                    <div class="campo-formulario animacion-campo">
+                        <label for="calle" class="form-direccion">Calle</label>
+                        <input type="text" id="calle" name="calle" class="form-control required"/>
+                    </div>
+
+                    <div class="campo-formulario animacion-campo">
+                        <label for="numero">Número</label>
+                        <input type="number" id="numero" name="numero" class="form-control" required>
+                    </div>
+
+                    <div class="campo-formulario animacion-campo">
+                        <label for="ciudad">Ciudad</label>
+                        <input type="text" id="ciudad" name="ciudad" class="form-control" required>
+                    </div>
+
+                    <div class="campo-formulario animacion-campo">
+                        <label for="codigo-postal">Código postal</label>
+                        <input type="number" id="codigo-postal" name="codigo-postal" class="form-control" required>
+                    </div>
+
+                    <!-- Sección de costo de envío -->
+                    <div id="costo-envio-container" class="costo-envio" style="display: none;">
+                        <strong>Costo de envío estimado: $<span id="costo-envio">0.00</span></strong>
+                    </div>
+
+                    <div class="campo-pago">
+                        <h3>Selecciona método de pago</h3>
+                        
+                        <!--Tarjeta de credito-->
+                        <div class="opcion-pago">
+                            <input type="radio" id="tarjeta-credito" name="metodo-pago" value="credito" required>
+                            <label for="tarjeta-credito">Tarjeta de Crédito</label>
+                        </div>
+                        <!-- Tarjeta de debito -->
+                        <div class="opcion-pago">
+                            <input type="radio" id="tarjeta-debito" name="metodo-pago" value="debito" required>
+                            <label for="tarjeta-debito">Tarjeta de Débito</label>
+                        </div>
+                        <!-- Pago en Tienda -->
+                        <div class="opcion-pago">
+                            <input type="radio" id="pago-tienda" name="metodo-pago" value="tienda">
+                            <label for="pago-tienda">Pagar en Tienda</label>
+                        </div>
+                        
+                        <!-- Transferencia Bancaria -->
+                        <div class="opcion-pago">
+                            <input type="radio" id="transferencia" name="metodo-pago" value="transferencia">
+                            <label for="transferencia">Transferencia Bancaria</label>
+                        </div>
+
+                        <!-- campo dinámico -->
+                        <div id="campos-pago-dinamicos" class="campos-pago-dinamicos">
+                            <!-- Aquí aparecerán los campos según el método seleccionado -->
+                        </div>
+                    </div>
+
+                    <!-- Loading -->
+                    <div class="loading" id="loading">
+                        <p>Procesando tu pedido...</p>
+                    </div>
+
+                    <!-- Mensaje de éxito -->
+                    <div class="success-message" id="success-message">
+                        ¡Pedido procesado exitosamente! Redirigiendo...
+                    </div>
+
+                    <!-- Botón de envío -->
+                    <div class="campo-formulario">
+                        <button type="submit" id="btn-submit" style="width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 5px; font-size: 1.1rem; cursor: pointer;">
+                            Completar Pago
+                        </button>
+                    </div>
+                </section>
+            </form>
+        </main>
+    </div>
+
+    <!-- Contador de tiempo -->
+    <div class="tiempo-contador" id="tiempo-contador">
+        Tiempo: 0s
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const startTime = new Date();
+            let tiempoInterval;
+            let pedidoItems = [];
+            let totalPedido = 0;
+            let descuentoAplicado = 0;
+            let cuponAplicado = null;
+
+            // 1. Cargar items del pedido desde sessionStorage
+            function cargarItemsPedido() {
+                const pedidoData = sessionStorage.getItem('checkoutData');
+                if (pedidoData) {
+                    const data = JSON.parse(pedidoData);
+                    pedidoItems = data.items || [];
+                    actualizarResumenPedido();
+                } else {
+                    // Si no hay datos, redirigir al carrito
+                    alert('No hay items en el pedido. Redirigiendo al carrito...');
+                    window.location.href = 'carrito.html';
+                }
+            }
+
+            // 2. Actualizar resumen del pedido
+            function actualizarResumenPedido() {
+                const container = document.getElementById('items-pedido');
+                const totalElement = document.getElementById('total-pedido');
+                const totalConDescuentoElement = document.getElementById('total-con-descuento');
+                
+                container.innerHTML = '';
+                totalPedido = 0;
+
+                pedidoItems.forEach(item => {
+                    totalPedido += item.precio * item.cantidad;
+                    const itemElement = document.createElement('div');
+                    itemElement.className = 'item-pedido';
+                    itemElement.innerHTML = `
+                        <span>${item.nombre} (x${item.cantidad})</span>
+                        <span>$${(item.precio * item.cantidad).toFixed(2)}</span>
+                    `;
+                    container.appendChild(itemElement);
+                });
+
+                totalElement.textContent = totalPedido.toFixed(2);
+                totalConDescuentoElement.textContent = (totalPedido - descuentoAplicado).toFixed(2);
+            }
+
+            // 3. Contador de tiempo
+            function actualizarTiempo() {
+                const currentTime = new Date();
+                const segundos = Math.floor((currentTime - startTime) / 1000);
+                document.getElementById('tiempo-contador').textContent = `Tiempo: ${segundos}s`;
+            }
+            tiempoInterval = setInterval(actualizarTiempo, 1000);
+
+            // 4. Cargar datos guardados
+            const savedData = localStorage.getItem('formularioPago');
+            if (savedData) {
+                const formData = JSON.parse(savedData);
+                Object.keys(formData).forEach(key => {
+                    const element = document.getElementById(key);
+                    if (element) {
+                        element.value = formData[key];
+                        if (key === 'codigo-postal') {
+                            calcularCostoEnvio();
+                            sugerirCiudad();
+                        }
+                    }
+                });
+            }
+
+            // 5. Validación en tiempo real
+            document.querySelectorAll('.contenedor-direccion input').forEach(input => {
+                input.addEventListener('blur', function() {
+                    if (this.value.trim() === '' && this.hasAttribute('required')) {
+                        this.classList.add('campo-invalido');
+                        this.classList.remove('campo-valido');
+                    } else if (this.value.trim() !== '') {
+                        this.classList.add('campo-valido');
+                        this.classList.remove('campo-invalido');
+                    }
+                });
+
+                // 6. Guardado automático
+                input.addEventListener('input', function() {
+                    guardarEnLocalStorage();
+                    
+                    // 7. Animación al completar
+                    if (this.value.trim() !== '') {
+                        this.parentElement.style.transform = 'scale(1.02)';
+                        setTimeout(() => {
+                            this.parentElement.style.transform = 'scale(1)';
+                        }, 200);
+                    }
+                });
+            });
+
+            // 8. Cálculo de costo de envío
+            function calcularCostoEnvio() {
+                const cp = document.getElementById('codigo-postal').value;
+                const costoContainer = document.getElementById('costo-envio-container');
+                
+                if (cp.length === 5) {
+                    let costoBase = 50;
+                    if (cp.startsWith('01') || cp.startsWith('02') || cp.startsWith('03')) {
+                        costoBase = 30;
+                    } else if (cp.startsWith('44') || cp.startsWith('45')) {
+                        costoBase = 60;
+                    } else if (cp.startsWith('64') || cp.startsWith('65')) {
+                        costoBase = 80;
+                    } else {
+                        costoBase = 100;
+                    }
+                    
+                    const costoFinal = costoBase + (Math.random() * 20);
+                    document.getElementById('costo-envio').textContent = costoFinal.toFixed(2);
+                    costoContainer.style.display = 'block';
+                } else {
+                    costoContainer.style.display = 'none';
+                }
+            }
+
+            // 9. Sugerir ciudad por código postal
+            function sugerirCiudad() {
+                const cpInput = document.getElementById('codigo-postal');
+                const ciudadInput = document.getElementById('ciudad');
+                
+                if (cpInput && ciudadInput) {
+                    const cp = cpInput.value;
+                    
+                    if (cp.length === 5) {
+                        const ciudades = {
+                            '01000': 'Ciudad de México', '02000': 'Ciudad de México', '03000': 'Ciudad de México',
+                            '44100': 'Guadalajara', '44200': 'Guadalajara', '44300': 'Guadalajara',
+                            '64000': 'Monterrey', '64100': 'Monterrey', '64200': 'Monterrey',
+                            '80000': 'Culiacán', '20000': 'Aguascalientes', '36000': 'Guanajuato',
+                            '25000': 'Saltillo', '28000': 'Colima', '45000': 'Zapopan',
+                            '83100': 'Hermosillo', '21000': 'Mexicali', '86000': 'Villahermosa'
+                        };
+                        
+                        if (ciudades[cp] && !ciudadInput.value) {
+                            ciudadInput.value = ciudades[cp];
+                        }
+                    }
+                }
+            }
+
+            // Eventos para código postal
+            const cpInput = document.getElementById('codigo-postal');
+            if (cpInput) {
+                cpInput.addEventListener('input', function() {
+                    this.value = this.value.replace(/[^0-9]/g, '').slice(0, 5);
+                    if (this.value.length === 5) {
+                        setTimeout(sugerirCiudad, 300);
+                        calcularCostoEnvio();
+                    }
+                });
+                
+                cpInput.addEventListener('blur', function() {
+                    sugerirCiudad();
+                    calcularCostoEnvio();
+                });
+            }
+
+            // 10. Formato de tarjeta de crédito
+            document.addEventListener('input', function(e) {
+                if (e.target.id === 'numero-tarjeta') {
+                    let value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+                    let formattedValue = value.match(/.{1,4}/g)?.join(' ');
+                    if (formattedValue) e.target.value = formattedValue;
+                }
+            });
+
+            // 11. Guardar en localStorage
+            function guardarEnLocalStorage() {
+                const formData = {
+                    calle: document.getElementById('calle').value,
+                    numero: document.getElementById('numero').value,
+                    ciudad: document.getElementById('ciudad').value,
+                    'codigo-postal': document.getElementById('codigo-postal').value
+                };
+                localStorage.setItem('formularioPago', JSON.stringify(formData));
+            }
+
+            // 12. Aplicar cupón de descuento
+            document.getElementById('aplicar-cupon').addEventListener('click', async function() {
+                const codigoCupon = document.getElementById('codigo-cupon').value.trim();
+                const mensajeCupon = document.getElementById('mensaje-cupon');
+                const descuentoSection = document.getElementById('descuento-aplicado');
+
+                if (!codigoCupon) {
+                    mensajeCupon.innerHTML = '<p class="cupon-invalido">Por favor ingresa un código de cupón</p>';
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`http://127.0.0.1:8000/api/cupones/validar?codigo=${encodeURIComponent(codigoCupon)}`);
+                    const data = await response.json();
+
+                    if (data.valido) {
+                        descuentoAplicado = data.descuento;
+                        cuponAplicado = codigoCupon;
+                        
+                        mensajeCupon.innerHTML = `<p class="cupon-valido">¡Cupón aplicado! Descuento de $${descuentoAplicado}</p>`;
+                        descuentoSection.style.display = 'block';
+                        document.getElementById('monto-descuento').textContent = descuentoAplicado;
+                        document.getElementById('total-con-descuento').textContent = (totalPedido - descuentoAplicado).toFixed(2);
+                    } else {
+                        mensajeCupon.innerHTML = '<p class="cupon-invalido">Cupón no válido o expirado</p>';
+                        descuentoSection.style.display = 'none';
+                        descuentoAplicado = 0;
+                        cuponAplicado = null;
+                    }
+                } catch (error) {
+                    console.error('Error al validar cupón:', error);
+                    mensajeCupon.innerHTML = '<p class="cupon-invalido">Error al validar el cupón</p>';
+                }
+            });
+
+            // 13. Procesar checkout
+            async function procesarCheckout() {
+                const user = JSON.parse(localStorage.getItem('user'));
+                if (!user) {
+                    alert('Por favor inicia sesión para continuar');
+                    return false;
+                }
+            
+                const checkoutData = {
+                    user_id: user.user_id,
+                    items: pedidoItems.map(item => ({
+                        product_id: item.product_id,
+                        cantidad: item.cantidad
+                    }))
+                };
+            
+                console.log("Enviando datos al checkout:", checkoutData);
+            
+                try {
+                    const response = await fetch('http://127.0.0.1:8000/api/checkout', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(checkoutData)
+                    });
+                
+                    console.log("Respuesta del servidor:", response);
+                
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        console.error("Error del servidor:", errorData);
+                        throw new Error(errorData.detail || `Error ${response.status}: ${response.statusText}`);
+                    }
+                
+                    const result = await response.json();
+                    console.log("Checkout exitoso:", result);
+                    return result;
+                
+                } catch (error) {
+                    console.error('Error en checkout:', error);
+                    throw error;
+                }
+            }
+
+            // 14. Manejo de envío del formulario
+            document.getElementById('formulario-pago').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const btnSubmit = document.getElementById('btn-submit');
+                const loading = document.getElementById('loading');
+                const successMessage = document.getElementById('success-message');
+
+                // Mostrar loading
+                btnSubmit.disabled = true;
+                loading.style.display = 'block';
+
+                try {
+                    // Procesar checkout
+                    const resultado = await procesarCheckout();
+                    
+                    // Mostrar éxito
+                    loading.style.display = 'none';
+                    successMessage.style.display = 'block';
+                    
+                    const endTime = new Date();
+                    const tiempoSegundos = (endTime - startTime) / 1000;
+                    clearInterval(tiempoInterval);
+                    
+                    // Limpiar datos
+                    localStorage.removeItem('formularioPago');
+                    sessionStorage.removeItem('checkoutData');
+                    
+                    // Redirigir después de 2 segundos
+                    setTimeout(() => {
+                        window.location.href = 'home.html';
+                    }, 2000);
+                    
+                } catch (error) {
+                    loading.style.display = 'none';
+                    btnSubmit.disabled = false;
+                    alert(`Error al procesar el pago: ${error.message}`);
+                }
+            });
+
+            // 15. Campos dinámicos de métodos de pago
+            const radios = document.querySelectorAll('input[name="metodo-pago"]');
+            const contenedor = document.getElementById('campos-pago-dinamicos');
+            
+            radios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    contenedor.innerHTML = '';
+                    
+                    if (this.value === 'credito' || this.value === 'debito') {
+                        const tipo = this.value === 'credito' ? 'Crédito' : 'Débito';
+                        
+                        contenedor.innerHTML = `
+                            <div class="campo-formulario animacion-campo">
+                                <label for="numero-tarjeta">Número de tarjeta</label>
+                                <input type="text" id="numero-tarjeta" name="numero-tarjeta" maxlength="16" placeholder="1234 5678 9012 3456" required>
+                            </div>
+                            <div class="campo-formulario animacion-campo">
+                                <label for="fecha-vencimiento">Fecha de vencimiento</label>
+                                <input type="text" id="fecha-vencimiento" name="fecha-vencimiento" placeholder="MM/AA" required>
+                            </div>
+                            <div class="campo-formulario animacion-campo">
+                                <label for="cvv">CVV</label>
+                                <input type="text" id="cvv" name="cvv" maxlength="3" placeholder="123" required>
+                            </div>
+                            <div class="campo-formulario animacion-campo">
+                                <label for="nombre-tarjeta">Nombre en la tarjeta</label>
+                                <input type="text" id="nombre-tarjeta" name="nombre-tarjeta" placeholder="JUAN PEREZ" required>
+                            </div>
+                        `;
+                    }
+                    else if (this.value === 'transferencia') {
+                        contenedor.innerHTML = `
+                            <div class="campo-formulario">
+                                <p><strong>Datos para transferencia:</strong></p>
+                                <p>Banco: Mi Banco</p>
+                                <p>Cuenta: 1234-5678-9012-3456</p>
+                                <p>CLABE: 012345678901234567</p>
+                            </div>
+                            <div class="campo-formulario animacion-campo">
+                                <label for="comprobante">Subir comprobante</label>
+                                <input type="file" id="comprobante" name="comprobante" accept=".pdf,.jpg,.png" required>
+                            </div>
+                        `;
+                    }
+                    else if (this.value === 'tienda') {
+                        contenedor.innerHTML = `
+                            <div class="campo-formulario">
+                                <p><strong>Pago en tienda</strong></p>
+                                <p>Presenta este código en cualquier sucursal:</p>
+                                <div style="background: #f0f0f0; padding: 10px; text-align: center; font-weight: bold; font-size: 1.2rem;">
+                                    COD-${Math.random().toString(36).substr(2, 6).toUpperCase()}
+                                </div>
+                                <p style="margin-top: 10px; font-size: 0.9rem;">Tu pedido estará reservado por 24 horas</p>
+                            </div>
+                        `;
+                    }
+                });
+            });
+
+            // Inicializar
+            cargarItemsPedido();
+        });
+    </script>
+</body>
+</html>
