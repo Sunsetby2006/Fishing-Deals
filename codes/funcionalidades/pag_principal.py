@@ -563,16 +563,15 @@ def obtener_productos_vendedor(user_id: int):
 # Modelos para los datos
 class CarritoRequest(BaseModel):
     producto_id: int
+    user_id:int
 
 class WishlistRequest(BaseModel):
     producto_id: int
+    user_id:int
 
 # Endpoint para agregar al carrito
 @app.post("/api/carrito/agregar")
-def agregar_carrito(carrito_data: CarritoRequest, user_id: int = None):
-    if not user_id:
-        return {"exito": False, "mensaje": "Se requiere user_id"}
-    
+def agregar_carrito(carrito_data: CarritoRequest):
     conn = get_connection()
     if conn is None:
         raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
@@ -584,7 +583,7 @@ def agregar_carrito(carrito_data: CarritoRequest, user_id: int = None):
         cursor.execute("""
             SELECT * FROM cart 
             WHERE user_id = %s AND product_id = %s
-        """, (user_id, carrito_data.producto_id))
+        """, (carrito_data.user_id, carrito_data.producto_id))
         existente = cursor.fetchone()
 
         if existente:
@@ -592,13 +591,13 @@ def agregar_carrito(carrito_data: CarritoRequest, user_id: int = None):
             cursor.execute("""
                 UPDATE cart SET cantidad = cantidad + 1 
                 WHERE user_id = %s AND product_id = %s
-            """, (user_id, carrito_data.producto_id))
+            """, (carrito_data.user_id, carrito_data.producto_id))
         else:
             # Insertar nuevo producto al carrito
             cursor.execute("""
                 INSERT INTO cart (user_id, product_id, cantidad)
                 VALUES (%s, %s, 1)
-            """, (user_id, carrito_data.producto_id))
+            """, (carrito_data.user_id, carrito_data.producto_id))
         
         conn.commit()
         return {"exito": True, "mensaje": "Producto agregado al carrito"}
@@ -643,9 +642,7 @@ def obtener_carrito(user_id: int):
 
 # Endpoint para eliminar del carrito
 @app.post("/api/carrito/eliminar")
-def eliminar_carrito(carrito_data: CarritoRequest, user_id: int = None):
-    if not user_id:
-        return {"exito": False, "mensaje": "Se requiere user_id"}
+def eliminar_carrito(carrito_data: CarritoRequest):
     
     conn = get_connection()
     if conn is None:
@@ -657,7 +654,7 @@ def eliminar_carrito(carrito_data: CarritoRequest, user_id: int = None):
         cursor.execute("""
             DELETE FROM cart 
             WHERE user_id = %s AND product_id = %s
-        """, (user_id, carrito_data.producto_id))
+        """, (carrito_data.user_id, carrito_data.producto_id))
         
         conn.commit()
         return {"exito": True, "mensaje": "Producto eliminado del carrito"}
@@ -672,9 +669,7 @@ def eliminar_carrito(carrito_data: CarritoRequest, user_id: int = None):
 
 # Endpoint para agregar a wishlist
 @app.post("/api/wishlist/agregar")
-def agregar_wishlist(wishlist_data: WishlistRequest, user_id: int = None):
-    if not user_id:
-        return {"exito": False, "mensaje": "Se requiere user_id"}
+def agregar_wishlist(wishlist_data: WishlistRequest):
     
     conn = get_connection()
     if conn is None:
@@ -687,7 +682,7 @@ def agregar_wishlist(wishlist_data: WishlistRequest, user_id: int = None):
         cursor.execute("""
             SELECT * FROM wishlist 
             WHERE user_id = %s AND product_id = %s
-        """, (user_id, wishlist_data.producto_id))
+        """, (wishlist_data.user_id, wishlist_data.producto_id))
         existente = cursor.fetchone()
 
         if existente:
@@ -697,7 +692,7 @@ def agregar_wishlist(wishlist_data: WishlistRequest, user_id: int = None):
         cursor.execute("""
             INSERT INTO wishlist (user_id, product_id)
             VALUES (%s, %s)
-        """, (user_id, wishlist_data.producto_id))
+        """, (wishlist_data.user_id, wishlist_data.producto_id))
         
         conn.commit()
         return {"exito": True, "mensaje": "Producto agregado a wishlist"}
@@ -742,9 +737,7 @@ def obtener_wishlist(user_id: int):
 
 # Endpoint para eliminar de wishlist
 @app.post("/api/wishlist/eliminar")
-def eliminar_wishlist(wishlist_data: WishlistRequest, user_id: int = None):
-    if not user_id:
-        return {"exito": False, "mensaje": "Se requiere user_id"}
+def eliminar_wishlist(wishlist_data: WishlistRequest):
     
     conn = get_connection()
     if conn is None:
@@ -756,7 +749,7 @@ def eliminar_wishlist(wishlist_data: WishlistRequest, user_id: int = None):
         cursor.execute("""
             DELETE FROM wishlist 
             WHERE user_id = %s AND product_id = %s
-        """, (user_id, wishlist_data.producto_id))
+        """, (wishlist_data.user_id, wishlist_data.producto_id))
         
         conn.commit()
         return {"exito": True, "mensaje": "Producto eliminado de wishlist"}
