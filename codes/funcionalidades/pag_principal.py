@@ -823,8 +823,9 @@ def agregar_resena(review_data: ReviewRequest):
         if conn:
             cursor.close()
             conn.close()
-
+            
 #endpoint Checkout
+
 class CheckoutItem(BaseModel):
     product_id: int
     cantidad: int
@@ -834,9 +835,106 @@ class CheckoutData(BaseModel):
     items: List[CheckoutItem]
 
 @app.post("/api/checkout")
+@app.post("/api/checkout")
 def procesar_checkout(data: CheckoutData):
-    print("LLEGO ESTO:", data)
+    print("=== INICIANDO CHECKOUT ===")
+    print("Datos recibidos:", data.dict())
+    
+    conn = get_connection()
+    if not conn:
+        print("ERROR: No se pudo conectar a la base de datos")
+        raise HTTPException(status_code=500, detail="No se pudo conectar a la base de datos")
 
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        if not data.items:
+            print("ERROR: El checkout está vacío")
+            raise HTTPException(status_code=400, detail="El checkout está vacío")
+
+        print("Insertando en tabla purchase...")
+        # CORRECCIÓN: Usar 'Preparando' en lugar de 'Preparando'
+        cursor.execute(
+            "INSERT INTO purchase (user_id, fecha, total, estado) VALUES (%s, NOW(), 0, 'Preparando')",
+            (data.user_id,)
+        )
+        purchase_id = cursor.lastrowid
+        print(f"Purchase ID generado: {purchase_id}")
+
+        total = 0
+
+        for item in data.items:
+            print(f"Procesando item: {item}")
+            
+            # Verificar que el producto existe y obtener precio
+            cursor.execute("SELECT precio, nombre, stock FROM products WHERE product_id = %s", (item.product_id,))
+            product_data = cursor.fetchone()
+            
+            if not product_data:
+                print(f"ERROR: Producto {item.product_id} no encontrado")
+                raise HTTPException(status_code=404, detail=f"Producto {item.product_id} no encontrado")
+            
+            precio = product_data['precio']
+            stock_actual = product_data['stock']
+            nombre_producto = product_data['nombre']
+            
+            print(f"Producto: {nombre_producto}, Precio: {precio}, Stock: {stock_actual}")
+
+            # Verificar stock disponible
+            if stock_actual < item.cantidad:
+                print(f"ERROR: Stock insuficiente para {nombre_producto}. Stock: {stock_actual}, Solicitado: {item.cantidad}")
+                raise HTTPException(status_code=400, detail=f"Stock insuficiente para {nombre_producto}")
+
+            total += precio * item.cantidad
+
+            # Insertar en purchase_info
+            cursor.execute(
+                "INSERT INTO purchase_info (purchase_id, product_id, cantidad, precio_unitario) VALUES (%s, %s, %s, %s)",
+                (purchase_id, item.product_id, item.cantidad, precio)
+            )
+            
+            # Actualizar stock del producto
+            nuevo_stock = stock_actual - item.cantidad
+            cursor.execute(
+                "UPDATE products SET stock = %s WHERE product_id = %s",
+                (nuevo_stock, item.product_id)
+            )
+            print(f"Stock actualizado: {nombre_producto} -> {nuevo_stock}")
+
+        print(f"Total calculado: {total}")
+        
+        # Actualizar total en purchase
+        cursor.execute("UPDATE purchase SET total = %s WHERE purchase_id = %s", (total, purchase_id))
+
+        # Limpiar carrito del usuario después del checkout exitoso
+        cursor.execute("DELETE FROM cart WHERE user_id = %s", (data.user_id,))
+        print("Carrito limpiado")
+
+        conn.commit()
+        print("=== CHECKOUT COMPLETADO EXITOSAMENTE ===")
+        
+        return {
+            "mensaje": "Pedido creado correctamente", 
+            "purchase_id": purchase_id,
+            "total": total
+        }
+
+    except HTTPException:
+        # Re-lanzar excepciones HTTP
+        conn.rollback()
+        raise
+    except Exception as e:
+        print("ERROR EN CHECKOUT:", str(e))
+        print("Tipo de error:", type(e).__name__)
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
+    finally:
+        cursor.close()
+        conn.close()
+
+#cupones
+@app.get("/api/cupones/validar")
+def validar_cupon(codigo: str):
     conn = get_connection()
     if not conn:
         raise HTTPException(status_code=500, detail="No se pudo conectar a la base de datos")
@@ -844,38 +942,27 @@ def procesar_checkout(data: CheckoutData):
     cursor = conn.cursor(dictionary=True)
 
     try:
-        if not data.items:
-            raise HTTPException(status_code=400, detail="El checkout está vacío")
-
         cursor.execute(
-            "INSERT INTO purchase (user_id, fecha, total, estado) VALUES (%s, NOW(), 0, 'Preparando')",
-            (data.user_id,)
+            "SELECT discount_id, discount_name, discount FROM discounts WHERE discount_name = %s",
+            (codigo,)
         )
-        purchase_id = cursor.lastrowid
+        cupon = cursor.fetchone()
 
-        total = 0
-
-        for item in data.items:
-            cursor.execute("SELECT precio FROM products WHERE product_id = %s", (item.product_id,))
-            precio = cursor.fetchone()[0]
-
-            total += precio * item.cantidad
-
-            cursor.execute(
-                "INSERT INTO purchase_info (purchase_id, product_id, cantidad, precio_unitario) VALUES (%s, %s, %s, %s)",
-                (purchase_id, item.product_id, item.cantidad, precio)
-            )
-
-        cursor.execute("UPDATE purchase SET total = %s WHERE purchase_id = %s", (total, purchase_id))
-
-        conn.commit()
-        return {"mensaje": "Pedido creado correctamente", "purchase_id": purchase_id}
+        if cupon:
+            return {
+                "valido": True,
+                "descuento": cupon['discount'],
+                "nombre": cupon['discount_name']
+            }
+        else:
+            return {
+                "valido": False,
+                "mensaje": "Cupón no válido"
+            }
 
     except Exception as e:
-        print("ERROR EN CHECKOUT:", e)
-        conn.rollback()
+        print("ERROR AL VALIDAR CUPÓN:", e)
         raise HTTPException(status_code=500, detail=str(e))
-
     finally:
         cursor.close()
         conn.close()
