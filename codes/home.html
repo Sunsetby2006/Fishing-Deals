@@ -611,63 +611,74 @@
     }
 
     function showLoginRegisterModal() {
-        const modalHTML = `
-            <div class="auth-modal-overlay">
-                <div class="auth-modal">
-                    <div class="auth-header">
-                        <h3>Fishing Deals</h3>
-                        <button class="close-btn" id="closeAuthModal">&times;</button>
-                    </div>
-                    
-                    <div class="auth-tabs">
-                        <button class="auth-tab active" data-tab="login">Iniciar Sesión</button>
-                        <button class="auth-tab" data-tab="register">Crear Cuenta</button>
-                    </div>
-                    
-                    <!-- Formulario de Login -->
-                    <div class="auth-form active" id="login-form">
-                        <form id="loginForm">
-                            <div class="form-group">
-                                <label for="login-usuario">Usuario:</label>
-                                <input type="text" id="login-usuario" name="usuario" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="login-contraseña">Contraseña:</label>
-                                <input type="password" id="login-contraseña" name="contraseña" required>
-                            </div>
-                            <button type="submit" class="auth-submit-btn">Iniciar Sesión</button>
-                        </form>
-                    </div>
-                    
-                    <!-- Formulario de Registro -->
-                    <div class="auth-form" id="register-form">
-                        <form id="registerForm">
-                            <div class="form-group">
-                                <label for="register-nombre">Nombre completo:</label>
-                                <input type="text" id="register-nombre" name="nombre" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="register-email">Correo electrónico:</label>
-                                <input type="email" id="register-email" name="email" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="register-contraseña">Contraseña:</label>
-                                <input type="password" id="register-contraseña" name="contraseña" required minlength="8">
-                            </div>
-                            <div class="form-group">
-                                <label for="register-direccion">Dirección (opcional):</label>
-                                <input type="text" id="register-direccion" name="direccion">
-                            </div>
-                            <button type="submit" class="auth-submit-btn">Crear Cuenta</button>
-                        </form>
-                    </div>
-                    
-                    <div class="auth-message" id="authMessage"></div>
+    const modalHTML = `
+        <div class="auth-modal-overlay">
+            <div class="auth-modal">
+                <div class="auth-header">
+                    <h3>Fishing Deals</h3>
+                    <button class="close-btn" id="closeAuthModal">&times;</button>
                 </div>
+                
+                <div class="auth-tabs">
+                    <button class="auth-tab active" data-tab="login">Iniciar Sesión</button>
+                    <button class="auth-tab" data-tab="register">Crear Cuenta</button>
+                </div>
+                
+                <!-- Formulario de Login -->
+                <div class="auth-form active" id="login-form">
+                    <form id="loginForm">
+                        <div class="form-group">
+                            <label for="login-usuario">Usuario:</label>
+                            <input type="text" id="login-usuario" name="usuario" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="login-contraseña">Contraseña:</label>
+                            <input type="password" id="login-contraseña" name="contraseña" required>
+                        </div>
+                        <button type="submit" class="auth-submit-btn">Iniciar Sesión</button>
+                    </form>
+                </div>
+                
+                <!-- Formulario de Registro -->
+                <div class="auth-form" id="register-form">
+                    <form id="registerForm">
+                        <div class="form-group">
+                            <label for="register-nombre">Nombre completo:</label>
+                            <input type="text" id="register-nombre" name="nombre" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="register-email">Correo electrónico:</label>
+                            <input type="email" id="register-email" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="register-contraseña">Contraseña:</label>
+                            <input type="password" id="register-contraseña" name="contraseña" required minlength="8">
+                        </div>
+                        <div class="form-group">
+                            <label for="register-direccion">Dirección (opcional):</label>
+                            <input type="text" id="register-direccion" name="direccion">
+                        </div>
+                        
+                        <!-- SELECTOR DE ROL -->
+                        <div class="form-group">
+                            <label for="register-rol">Tipo de cuenta:</label>
+                            <select id="register-rol" name="rol" class="rol-selector" required>
+                                <option value="">Selecciona tu tipo de cuenta</option>
+                                <option value="Cliente">Cliente - Comprar productos</option>
+                                <option value="Vendedor">Vendedor - Vender productos</option>
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="auth-submit-btn">Crear Cuenta</button>
+                    </form>
+                </div>
+                
+                <div class="auth-message" id="authMessage"></div>
             </div>
-        `;
-        
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
         
         // Event listeners para tabs
         document.querySelectorAll('.auth-tab').forEach(tab => {
@@ -739,42 +750,49 @@
     }
 
     async function handleRegister(e) {
-        e.preventDefault();
-        const formData = new FormData(e.target);
-        const registerData = {
-            nombre: formData.get('nombre'),
-            email: formData.get('email'),
-            contraseña: formData.get('contraseña'),
-            direccion: formData.get('direccion') || ''
-        };
-        
-        try {
-            const response = await fetch('http://127.0.0.1:8000/api/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(registerData)
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                showMessage('success', '¡Cuenta creada exitosamente! Ahora puedes iniciar sesión.');
-                // Cambiar a pestaña de login
-                setTimeout(() => {
-                    switchAuthTab('login');
-                    // Rellenar automáticamente el usuario en login
-                    document.getElementById('login-usuario').value = registerData.nombre;
-                }, 1500);
-            } else {
-                showMessage('error', result.message);
-            }
-        } catch (error) {
-            console.error('Error en registro:', error);
-            showMessage('error', 'Error al conectar con el servidor');
-        }
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const registerData = {
+        nombre: formData.get('nombre'),
+        email: formData.get('email'),
+        contraseña: formData.get('contraseña'),
+        direccion: formData.get('direccion') || '',
+        rol: formData.get('rol')  // ← Agregar el rol del formulario
+    };
+    
+    // Validar que se haya seleccionado un rol
+    if (!registerData.rol) {
+        showMessage('error', 'Por favor selecciona un tipo de cuenta');
+        return;
     }
+    
+    try {
+        const response = await fetch('http://127.0.0.1:8000/api/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(registerData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage('success', `¡Cuenta de ${registerData.rol.toLowerCase()} creada exitosamente! Ahora puedes iniciar sesión.`);
+            // Cambiar a pestaña de login
+            setTimeout(() => {
+                switchAuthTab('login');
+                // Rellenar automáticamente el usuario en login
+                document.getElementById('login-usuario').value = registerData.nombre;
+            }, 1500);
+        } else {
+            showMessage('error', result.message);
+        }
+    } catch (error) {
+        console.error('Error en registro:', error);
+        showMessage('error', 'Error al conectar con el servidor');
+    }
+}
 
     function showUserInfoModal(user) {
         const modalHTML = `
@@ -1117,6 +1135,43 @@
                 z-index: 1000;
             }
             
+            /* Estilos para el selector de rol */
+            .rol-selector {
+                width: 100%;
+                padding: 10px;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                font-size: 1rem;
+                background-color: white;
+                cursor: pointer;
+            }
+
+            .rol-selector:focus {
+                outline: none;
+                border-color: var(--color-secundario);
+                box-shadow: 0 0 5px rgba(0, 92, 230, 0.3);
+            }
+
+            .rol-selector option {
+                padding: 10px;
+            }
+
+            /* Información adicional sobre los roles */
+            .rol-info {
+                margin-top: 5px;
+                font-size: 0.8rem;
+                color: #666;
+                line-height: 1.3;
+            }
+
+            .rol-info.cliente {
+                color: #003399;
+            }
+
+            .rol-info.vendedor {
+                color: #28a745;
+            }
+
             .auth-modal {
                 background: white;
                 padding: 0;
@@ -1471,7 +1526,6 @@
     `;
     
     document.head.insertAdjacentHTML('beforeend', additionalStyles);
-
     </script> 
 </body>
 </html>
