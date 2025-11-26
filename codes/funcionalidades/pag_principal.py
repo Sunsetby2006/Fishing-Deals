@@ -835,7 +835,6 @@ class CheckoutData(BaseModel):
     items: List[CheckoutItem]
 
 @app.post("/api/checkout")
-@app.post("/api/checkout")
 def procesar_checkout(data: CheckoutData):
     print("=== INICIANDO CHECKOUT ===")
     print("Datos recibidos:", data.dict())
