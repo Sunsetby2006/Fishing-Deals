@@ -176,6 +176,7 @@
             border-radius: 8px;
             padding: 15px;
             background: white;
+            position: relative;
         }
 
         .product-image {
@@ -219,6 +220,82 @@
         th {
             background: var(--color-fondo);
             font-weight: bold;
+        }
+
+        /* Estilos para el modal de edición */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            width: 450px;
+            max-width: 90%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+
+        .modal h3 {
+            margin-top: 0;
+            color: var(--color-principal);
+            border-bottom: 2px solid var(--color-fondo);
+            padding-bottom: 10px;
+        }
+
+        .btn-secondary {
+            background: #6c757d !important;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268 !important;
+        }
+
+        .btn-edit {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .btn-edit:hover {
+            background: #0056b3;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #dee2e6;
         }
     </style>
 </head>
@@ -301,6 +378,29 @@
         </div>
     </div>
 
+    <!-- Modal para editar precio -->
+    <div id="modalEditarPrecio" class="modal">
+        <div class="modal-content">
+            <h3>Editar Precio del Producto</h3>
+            <form id="formEditarPrecio">
+                <input type="hidden" id="editProductId">
+                <div class="form-group">
+                    <label for="editProductNombre">Producto:</label>
+                    <input type="text" id="editProductNombre" readonly style="background: #f5f5f5;">
+                </div>
+                <div class="form-group">
+                    <label for="editProductPrecio">Nuevo Precio:</label>
+                    <input type="number" id="editProductPrecio" step="0.01" min="0.01" required>
+                </div>
+                <div class="modal-buttons">
+                    <button type="submit" class="submit-btn" style="background: #007bff;">Actualizar Precio</button>
+                    <button type="button" class="submit-btn btn-secondary" onclick="cerrarModal()">Cancelar</button>
+                </div>
+            </form>
+            <div class="message" id="editMessage"></div>
+        </div>
+    </div>
+
     <script>
         const API_URL = "http://127.0.0.1:8000/api";
         const user = JSON.parse(localStorage.getItem('user'));
@@ -375,7 +475,7 @@
             }
         });
 
-        // Cargar productos
+        // Cargar productos con funcionalidad de edición
         async function cargarMisProductos() {
             try {
                 const response = await fetch(`${API_URL}/vendedor/productos?user_id=${user.user_id}`);
@@ -388,20 +488,98 @@
                         <div class="products-grid">
                             ${data.productos.map(product => `
                                 <div class="product-card">
-                                    <img src="${product.image_url}" alt="${product.nombre}" class="product-image">
+                                    <img src="${product.image_url}" alt="${product.nombre}" class="product-image" 
+                                         onerror="this.src='https://via.placeholder.com/250x150?text=Imagen+No+Disponible'">
                                     <h3>${product.nombre}</h3>
                                     <p><strong>Precio:</strong> $${parseFloat(product.precio).toFixed(2)}</p>
                                     <p><strong>Stock:</strong> ${product.stock}</p>
+                                    <p><strong>ID:</strong> ${product.product_id}</p>
+                                    <button class="btn-edit" onclick="abrirModalEdicion(${product.product_id}, '${product.nombre.replace(/'/g, "\\'")}', ${product.precio})">
+                                        <i class="fas fa-edit"></i> Editar Precio
+                                    </button>
                                 </div>
                             `).join('')}
                         </div>
                     `;
                 } else {
-                    container.innerHTML = '<p>No tienes productos</p>';
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-box"></i>
+                            <h3>No tienes productos</h3>
+                            <p>Comienza subiendo tu primer producto en la sección "Subir Producto"</p>
+                        </div>
+                    `;
                 }
             } catch (error) {
-                document.getElementById('productosLista').innerHTML = '<p>Error al cargar productos</p>';
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h3>Error al cargar productos</h3>
+                        <p>Intenta nuevamente más tarde</p>
+                    </div>
+                `;
             }
+        }
+
+        // Funciones para el modal de edición
+        function abrirModalEdicion(productId, productNombre, productPrecio) {
+            document.getElementById('editProductId').value = productId;
+            document.getElementById('editProductNombre').value = productNombre;
+            document.getElementById('editProductPrecio').value = productPrecio;
+            document.getElementById('modalEditarPrecio').style.display = 'flex';
+            document.getElementById('editMessage').style.display = 'none';
+        }
+
+        function cerrarModal() {
+            document.getElementById('modalEditarPrecio').style.display = 'none';
+            document.getElementById('editMessage').style.display = 'none';
+            document.getElementById('formEditarPrecio').reset();
+        }
+
+        // Manejar el envío del formulario de edición
+        document.getElementById('formEditarPrecio').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const productId = document.getElementById('editProductId').value;
+            const nuevoPrecio = parseFloat(document.getElementById('editProductPrecio').value);
+            
+            if (nuevoPrecio <= 0) {
+                showEditMessage('error', 'El precio debe ser mayor a 0');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/vendedor/editar-precio`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        product_id: parseInt(productId),
+                        nuevo_precio: nuevoPrecio,
+                        user_id: user.user_id
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showEditMessage('success', 'Precio actualizado correctamente');
+                    setTimeout(() => {
+                        cerrarModal();
+                        cargarMisProductos(); // Recargar la lista
+                    }, 1500);
+                } else {
+                    showEditMessage('error', result.detail || 'Error al actualizar precio');
+                }
+            } catch (error) {
+                showEditMessage('error', 'Error de conexión');
+            }
+        });
+
+        function showEditMessage(type, text) {
+            const messageEl = document.getElementById('editMessage');
+            messageEl.textContent = text;
+            messageEl.className = `message ${type}`;
+            messageEl.style.display = 'block';
         }
 
         // Cargar estadísticas
@@ -436,12 +614,13 @@
                                 <div class="product-card">
                                     <h3>${producto.producto_nombre}</h3>
                                     <p><strong>Ganancia:</strong> $${parseFloat(producto.ganancia_total).toFixed(2)}</p>
+                                    <p><strong>Unidades vendidas:</strong> ${producto.unidades_vendidas}</p>
                                 </div>
                             `).join('')}
                         </div>
                     `;
                 } else {
-                    topContainer.innerHTML = '<p>No hay datos</p>';
+                    topContainer.innerHTML = '<p>No hay datos de productos vendidos</p>';
                 }
 
             } catch (error) {
@@ -451,64 +630,68 @@
 
         // Cargar ventas
         async function cargarMisVentas() {
-    try {
-        const response = await fetch(`${API_URL}/vendedor/ventas?user_id=${user.user_id}`);
-        const data = await response.json();
+            try {
+                const response = await fetch(`${API_URL}/vendedor/ventas?user_id=${user.user_id}`);
+                const data = await response.json();
 
-        const container = document.getElementById('ventasLista');
-        
-        if (data.ventas && data.ventas.length > 0) {
-            container.innerHTML = `
-                <div style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <thead>
-                            <tr style="background: #f5f5f5;">
-                                <th style="padding: 12px; text-align: left;">Producto</th>
-                                <th style="padding: 12px; text-align: left;">Comprador</th>
-                                <th style="padding: 12px; text-align: left;">Cantidad</th>
-                                <th style="padding: 12px; text-align: left;">Precio Unitario</th>
-                                <th style="padding: 12px; text-align: left;">Ganancia</th>
-                                <th style="padding: 12px; text-align: left;">Fecha</th>
-                                <th style="padding: 12px; text-align: left;">Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${data.ventas.map(venta => `
-                                <tr>
-                                    <td style="padding: 12px; border-bottom: 1px solid #ddd;">${venta.producto_nombre}</td>
-                                    <td style="padding: 12px; border-bottom: 1px solid #ddd;">${venta.comprador_nombre}</td>
-                                    <td style="padding: 12px; border-bottom: 1px solid #ddd;">${venta.cantidad}</td>
-                                    <td style="padding: 12px; border-bottom: 1px solid #ddd;">$${parseFloat(venta.precio_unitario).toFixed(2)}</td>
-                                    <td style="padding: 12px; border-bottom: 1px solid #ddd; color: #28a745; font-weight: bold;">
-                                        $${parseFloat(venta.ganancia_total).toFixed(2)}
-                                    </td>
-                                    <td style="padding: 12px; border-bottom: 1px solid #ddd;">${venta.fecha_venta}</td>
-                                    <td style="padding: 12px; border-bottom: 1px solid #ddd;">${venta.estado}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-        } else {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-shopping-cart"></i>
-                    <h3>No hay ventas registradas</h3>
-                    <p>Las ventas aparecerán aquí cuando los clientes compren tus productos</p>
-                </div>
-            `;
+                const container = document.getElementById('ventasLista');
+                
+                if (data.ventas && data.ventas.length > 0) {
+                    container.innerHTML = `
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #f5f5f5;">
+                                        <th style="padding: 12px; text-align: left;">Producto</th>
+                                        <th style="padding: 12px; text-align: left;">Comprador</th>
+                                        <th style="padding: 12px; text-align: left;">Cantidad</th>
+                                        <th style="padding: 12px; text-align: left;">Precio Unitario</th>
+                                        <th style="padding: 12px; text-align: left;">Ganancia</th>
+                                        <th style="padding: 12px; text-align: left;">Fecha</th>
+                                        <th style="padding: 12px; text-align: left;">Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${data.ventas.map(venta => `
+                                        <tr>
+                                            <td style="padding: 12px; border-bottom: 1px solid #ddd;">${venta.producto_nombre}</td>
+                                            <td style="padding: 12px; border-bottom: 1px solid #ddd;">${venta.comprador_nombre}</td>
+                                            <td style="padding: 12px; border-bottom: 1px solid #ddd;">${venta.cantidad}</td>
+                                            <td style="padding: 12px; border-bottom: 1px solid #ddd;">$${parseFloat(venta.precio_unitario).toFixed(2)}</td>
+                                            <td style="padding: 12px; border-bottom: 1px solid #ddd; color: #28a745; font-weight: bold;">
+                                                $${parseFloat(venta.ganancia_total).toFixed(2)}
+                                            </td>
+                                            <td style="padding: 12px; border-bottom: 1px solid #ddd;">${new Date(venta.fecha_venta).toLocaleDateString()}</td>
+                                            <td style="padding: 12px; border-bottom: 1px solid #ddd;">
+                                                <span style="padding: 4px 8px; border-radius: 4px; background: #${venta.estado === 'Completado' ? '28a745' : 'ffc107'}; color: white;">
+                                                    ${venta.estado}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-shopping-cart"></i>
+                            <h3>No hay ventas registradas</h3>
+                            <p>Las ventas aparecerán aquí cuando los clientes compren tus productos</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h3>Error al cargar ventas</h3>
+                        <p>Intenta nuevamente más tarde</p>
+                    </div>
+                `;
+            }
         }
-    } catch (error) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-exclamation-triangle"></i>
-                <h3>Error al cargar ventas</h3>
-                <p>Intenta nuevamente más tarde</p>
-            </div>
-        `;
-    }
-}
 
         function showMessage(type, text) {
             const messageEl = document.getElementById('formMessage');
@@ -517,6 +700,13 @@
             messageEl.style.display = 'block';
             setTimeout(() => messageEl.style.display = 'none', 5000);
         }
+
+        // Cerrar modal al hacer clic fuera de él
+        document.getElementById('modalEditarPrecio').addEventListener('click', (e) => {
+            if (e.target.id === 'modalEditarPrecio') {
+                cerrarModal();
+            }
+        });
     </script>
 </body>
 </html>
