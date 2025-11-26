@@ -375,6 +375,70 @@
             margin: 0;
         }
 
+        #review-form-container {
+            background-color: var(--color-fondo);
+            border-left: 4px solid var(--color-secundario);
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+        }
+
+        #review-stars i {
+            font-size: 1.5rem;
+            color: var(--color-star);
+            cursor: pointer;
+            margin-right: 5px;
+            transition: color 0.3s;
+        }
+
+        #review-stars i.selected {
+            color: gold;
+        }
+
+        #review-text {
+            width: 100%;
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid var(--color-gris-claro);
+            border-radius: 5px;
+            resize: vertical;
+        }
+
+        #toggle-review-form {
+            background-color: var(--color-call-to-action); /* azul */
+            color: var(--color-texto-claro);
+            border: none;
+            border-radius: 6px;
+            padding: 8px 14px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        #toggle-review-form:hover {
+            background-color: #0088cc;
+            transform: translateY(-2px);
+        }
+
+        #review-form button[type="submit"] {
+            background-color: var(--color-call-to-action);
+            color: var(--color-texto-claro);
+            border: none;
+            border-radius: 6px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+        }
+
+        #review-form button[type="submit"]:hover {
+            background-color: #0088cc;
+            transform: translateY(-2px);
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .product-detail-area {
@@ -513,9 +577,28 @@
 
                 <!-- Todas las Reseñas -->
                 <div class="all-reviews-section" id="all-reviews-section">
-                    <h3>Todas las Reseñas</h3>
-                    <div id="reviews-list"></div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3>Todas las Reseñas</h3>
+                        <button id="toggle-review-form">Agregar reseña</button>
+                    </div>
+
+                    <div id="review-form-container" style="display: none;">
+                        <form id="review-form">
+                            <label>Calificación:</label>
+                            <div id="review-stars">
+                                <i class="far fa-star" data-value="1"></i>
+                                <i class="far fa-star" data-value="2"></i>
+                                <i class="far fa-star" data-value="3"></i>
+                                <i class="far fa-star" data-value="4"></i>
+                                <i class="far fa-star" data-value="5"></i>
+                            </div>
+                            <textarea id="review-text" rows="4" placeholder="Escribe tu reseña..."></textarea>
+                            <button type="submit">Enviar reseña</button>
+                        </form>
+                    </div>
                 </div>
+
+                <div id="reviews-list"></div>
             </div>
         </section>
     </main>
@@ -799,6 +882,70 @@
                 } else {
                     alert('Por favor inicia sesión para ver tu carrito');
                     document.getElementById('userIcon').click();
+                }
+            });
+
+            // Mostrar/ocultar formulario
+            document.getElementById('toggle-review-form').addEventListener('click', () => {
+                const formContainer = document.getElementById('review-form-container');
+                formContainer.style.display = formContainer.style.display === 'none' ? 'block' : 'none';
+            });
+
+            // Selección de estrellas
+            let selectedScore = 0;
+            document.querySelectorAll('#review-stars i').forEach(star => {
+                star.addEventListener('click', () => {
+                    selectedScore = parseInt(star.getAttribute('data-value'));
+                    document.querySelectorAll('#review-stars i').forEach((s, index) => {
+                        if (index < selectedScore) {
+                            s.classList.remove('far');
+                            s.classList.add('fas');
+                            s.style.color = 'var(--color-star)';
+                        } else {
+                            s.classList.remove('fas');
+                            s.classList.add('far');
+                            s.style.color = 'var(--color-star)';
+                        }
+                    });
+                });
+            });
+
+            // Envío de reseña
+            document.getElementById('review-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const comment = document.getElementById('review-text').value.trim();
+                if (selectedScore === 0 || comment === '') {
+                    alert('Por favor selecciona una calificación y escribe tu reseña.');
+                    return;
+                }
+
+                try {
+                    const data = await fetchWithAuth('http://127.0.0.1:8000/api/reviews', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            product_id: currentProduct.product_id,
+                            score: selectedScore,
+                            coment: comment
+                        })
+                    });
+                    console.log("Respuesta del backend:", data);
+
+                    if (data.success) {
+                        alert(data.message || '¡Reseña enviada con éxito!');
+                        document.getElementById('review-form').reset();
+                        selectedScore = 0;
+                        document.querySelectorAll('#review-stars i').forEach(s => {
+                            s.classList.remove('fas');
+                            s.classList.add('far');
+                        });
+                        document.getElementById('review-form-container').style.display = 'none';
+                        loadProductDetails(); // refresca reseñas
+                    } else {
+                        alert('Error: ' + (data.message || 'Respuesta inesperada'));
+                    }
+                } catch (error) {
+                    console.error('Error al enviar reseña:', error);
+                    alert('Error de conexión');
                 }
             });
 
