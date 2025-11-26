@@ -28,6 +28,7 @@ class RegisterRequest(BaseModel):
     email: str
     contraseña: str
     direccion: str = ""
+    rol: str = ""  
 
 # Endpoint para login
 @app.post("/api/login")
@@ -100,30 +101,48 @@ def register(register_data: RegisterRequest):
                 "message": "El nombre de usuario o email ya existe"
             }
         
-        # Insertar nuevo usuario
+        # Validar que el rol sea válido
+        if register_data.rol not in ['Cliente', 'Vendedor']:
+            return {
+                "success": False,
+                "message": "Rol no válido. Debe ser 'Cliente' o 'Vendedor'"
+            }
+        
+        # Insertar nuevo usuario con el rol seleccionado
         insert_query = """
         INSERT INTO users (nombre, email, contrasena, direccion, rol)
-        VALUES (%s, %s, %s, %s, 'cliente')
+        VALUES (%s, %s, %s, %s, %s)
         """
         cursor.execute(insert_query, (
             register_data.nombre,
             register_data.email,
             register_data.contraseña,
-            register_data.direccion
+            register_data.direccion,
+            register_data.rol  
         ))
         conn.commit()
         
-        # Obtener el ID del usuario recién creado
-        user_id = cursor.lastrowid
+        # Obtener el usuario recién creado
+        cursor.execute("SELECT * FROM users WHERE nombre = %s", (register_data.nombre,))
+        new_user = cursor.fetchone()
+        
+        user_info = {
+            "user_id": new_user['user_id'],
+            "nombre": new_user['nombre'],
+            "email": new_user['email'],
+            "direccion": new_user['direccion'],
+            "rol": new_user['rol']
+        }
         
         return {
             "success": True,
-            "message": "Usuario registrado exitosamente",
-            "user_id": user_id
+            "message": "Cuenta creada exitosamente",
+            "user": user_info
         }
             
     except Exception as e:
         print(f"Error en registro: {e}")
+        conn.rollback()
         raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
     finally:
         if conn:
