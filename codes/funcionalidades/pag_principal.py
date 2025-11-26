@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from conection import get_connection
 from typing import List, Dict, Any
 from fastapi.middleware.cors import CORSMiddleware
@@ -6,6 +6,8 @@ from pydantic import BaseModel
 import traceback
 import sqlite3
 from datetime import date
+from fastapi.responses import JSONResponse
+
 
 app = FastAPI()
 
@@ -576,6 +578,54 @@ def obtener_productos_vendedor(user_id: int):
             cursor.close()
             conn.close()
 
+class EditarPrecioRequest(BaseModel):
+    product_id: int
+    nuevo_precio: float
+    user_id: int
+
+# Endpoint para editar precio de producto
+@app.put("/api/vendedor/editar-precio")
+def editar_precio_producto(request: EditarPrecioRequest):
+    conn = get_connection()
+    if conn is None:
+        raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
+
+    try:
+        cursor = conn.cursor(dictionary=True)
+        
+        # Verificar que el producto existe y pertenece al usuario
+        cursor.execute(
+            "SELECT user_id FROM products WHERE product_id = %s",
+            (request.product_id,)
+        )
+        producto = cursor.fetchone()
+        
+        if not producto:
+            return JSONResponse({"success": False, "detail": "Producto no encontrado"})
+        
+        if producto['user_id'] != request.user_id:
+            return JSONResponse({"success": False, "detail": "No tienes permiso para editar este producto"})
+        
+        # Validar que el precio sea positivo
+        if request.nuevo_precio <= 0:
+            return JSONResponse({"success": False, "detail": "El precio debe ser mayor a 0"})
+        
+        # Actualizar el precio
+        cursor.execute(
+            "UPDATE products SET precio = %s WHERE product_id = %s",
+            (request.nuevo_precio, request.product_id)
+        )
+        conn.commit()
+        
+        return JSONResponse({"success": True, "detail": "Precio actualizado correctamente"})
+        
+    except Exception as e:
+        print(f"Error al editar precio: {e}")
+        return JSONResponse({"success": False, "detail": f"Error interno: {str(e)}"})
+    finally:
+        if conn:
+            cursor.close()
+            conn.close()
 
 # wishlist y carrito
 
