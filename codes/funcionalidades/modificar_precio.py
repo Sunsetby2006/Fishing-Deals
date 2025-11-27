@@ -1,20 +1,14 @@
-import mysql.connector
+from conection import get_connection
+from datetime import date
 
 def modificar_precio(user_id):
-    try:
-        conn = mysql.connector.connect(
-            host="localhost",
-            port=3306,
-            user="root",
-            password="Gi1tco0m222307",
-            database="datos_tienda"
-        )
-    except mysql.connector.Error as e:
-        print(f"Error de conexión a la base de datos: {e}")
+    conexion = get_connection()
+    if conexion is None:
+        print("Error de conexión a la base de datos")
         return
     
     try:
-        cursor = conn.cursor(dictionary=True)
+        cursor = conexion.cursor(dictionary=True)
         cursor.execute("""
             SELECT product_id, nombre, precio 
             FROM products 
@@ -39,7 +33,7 @@ def modificar_precio(user_id):
         WHERE product_id = %s AND user_id = %s
         """
         cursor.execute(update_query, (nuevo_precio, product_id, user_id))
-        conn.commit()
+        conexion.commit()
 
         if cursor.rowcount > 0:
             print(f"Precio actualizado correctamente. Nuevo precio: ${nuevo_precio}")
@@ -51,7 +45,7 @@ def modificar_precio(user_id):
     
     finally:
         cursor.close()
-        conn.close()
+        conexion.close()
 
 
 if __name__ == "__main__":
@@ -60,3 +54,5 @@ if __name__ == "__main__":
         modificar_precio(user_id)
     except ValueError:
         print("Debes ingresar un número válido para el ID de usuario.")
+
+
