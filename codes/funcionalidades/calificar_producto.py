@@ -1,34 +1,21 @@
-import mysql.connector
+from conection import get_connection
 from datetime import date
 
 SESSION_USER_ID = None  
 
-def get_connection():
-    try:
-        conn = mysql.connector.connect(
-            host="localhost",
-            port=3306,
-            user="root",
-            password="Gi1tco0m222307",
-            database="datos_tienda"
-        )
-        return conn
-    except mysql.connector.Error as e:
-        print(f"Error de conexión a la base de datos: {e}")
-        return None
-
 def calificar_producto():
+    conexion = get_connection()
+    if conexion is None:
+        print("Error de conexión a la base de datos")
+        return
+    
+    cursor = conexion.cursor()
     # Verificación de sesión
     if SESSION_USER_ID is None:
         print("Debes iniciar sesión para poder escribir una reseña.")
         print("Redirigiendo a pantalla de login/registro...")
         return
 
-    conexion = get_connection()
-    if conexion is None:
-        return
-    
-    cursor = conexion.cursor()
     product_id = int(input("Ingrese el ID del producto a reseñar: "))
     try:
         print(f"\nAgregar reseña para producto ID: {product_id}")
@@ -65,4 +52,6 @@ def calificar_producto():
 
 if __name__ == "__main__":
     calificar_producto()
+
+
 
