@@ -283,15 +283,16 @@
     </style>
 </head>
 <body>
-    <!-- Header fijo en la parte superior -->
-    <header class="header">
-        <div class="logo-text" id="logoHome">Fishing Deals</div>
-        <div class="header-icons">
-            <i class="fas fa-user" id="userIcon"></i> 
-            <i class="far fa-star" id="favoriteIcon"></i>
-            <i class="fas fa-shopping-cart" id="cartIcon"></i>
-        </div>
-    </header>
+   <!-- Header fijo en la parte superior -->
+<header class="header">
+    <div class="logo-text" id="logoHome">Fishing Deals</div>
+    <div class="header-icons">
+        <i class="fas fa-user" id="userIcon" title="Perfil"></i> 
+        <i class="far fa-star" id="favoriteIcon" title="Favoritos"></i>
+        <i class="fas fa-shopping-cart" id="cartIcon" title="Carrito"></i>
+        <i class="fas fa-rotate-left" id="refundsIcon" title="Reembolsos"></i>
+    </div>
+</header>
 
     <!-- Contenedor principal que ocupa toda la pantalla -->
     <div class="main-container">
@@ -897,6 +898,18 @@
                 showAuthModal();
             }
         });
+        
+        document.getElementById('refundsIcon').addEventListener('click', () => {
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (user) {
+                window.location.href = 'Reembolsos.html';
+            } else {
+                alert('Por favor inicia sesión para ver tus reembolsos');
+                showAuthModal();
+    }
+});
+
+        
 
         // Campo de Búsqueda y Filtro
         const searchInput = document.getElementById('searchInput');
@@ -1529,3 +1542,4 @@
     </script> 
 </body>
 </html>
+
