@@ -128,3 +128,23 @@ create table if not exists discounts (
     discount_name varchar(100) not null,
     discount int not null
 );
+
+-- reembolsos
+create table if not exists refunds (
+    refund_id int auto_increment primary key,
+    purchase_id int not null,
+    user_id int not null,
+    motivo varchar(300) not null,
+    monto_reembolso decimal(10,2) not null,
+    estado enum('pendiente', 'aprobado', 'rechazado', 'procesado') not null default 'pendiente',
+    fecha_solicitud timestamp default current_timestamp,
+    fecha_resolucion timestamp null,
+    notas_admin varchar(500),
+    foreign key (purchase_id) references purchase(purchase_id)
+        on delete cascade
+        on update cascade,
+    foreign key (user_id) references users(user_id)
+        on delete cascade
+        on update cascade
+);
+
