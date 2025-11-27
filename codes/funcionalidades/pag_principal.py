@@ -1034,3 +1034,139 @@ def validar_cupon(codigo: str):
     finally:
         cursor.close()
         conn.close()
+
+# Modelo para reembolsos
+class RefundRequest(BaseModel):
+    user_id: int
+    purchase_id: int
+    motivo: str
+
+# Solicitar reembolso
+@app.post("/api/refunds/solicitar")
+def solicitar_reembolso(refund_data: RefundRequest):
+    conn = get_connection()
+    if not conn:
+        raise HTTPException(status_code=500, detail="Error de conexión")
+
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        # Buscar el pedido
+        cursor.execute("""
+            SELECT purchase_id, total 
+            FROM purchase 
+            WHERE purchase_id = %s AND user_id = %s
+        """, (refund_data.purchase_id, refund_data.user_id))
+        
+        pedido = cursor.fetchone()
+        
+        if not pedido:
+            raise HTTPException(status_code=404, detail="Pedido no encontrado")
+        
+        # checar que no haya reembolso ya
+        cursor.execute("""
+            SELECT refund_id FROM refunds 
+            WHERE purchase_id = %s AND estado != 'Rechazado'
+        """, (refund_data.purchase_id,))
+        
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Ya existe solicitud")
+        
+        # Crear reembolso
+        cursor.execute("""
+            INSERT INTO refunds (purchase_id, user_id, motivo, monto_reembolso, estado)
+            VALUES (%s, %s, %s, %s, 'Pendiente')
+        """, (refund_data.purchase_id, refund_data.user_id, 
+            refund_data.motivo, pedido['total']))
+        
+        conn.commit()
+        
+        return {
+            "success": True,
+            "message": "Reembolso solicitado",
+            "refund_id": cursor.lastrowid
+        }
+        
+    except Exception as e:
+        print(f"Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# aqui se ven losreembolsos
+@app.get("/api/refunds/mis-reembolsos")
+def obtener_mis_reembolsos(user_id: int):
+    conn = get_connection()
+    if not conn:
+        raise HTTPException(status_code=500, detail="Error de conexión")
+
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        # Endpoint con nombres de productos
+        cursor.execute("""
+    SELECT 
+        r.refund_id,
+        r.purchase_id,
+        r.motivo,
+        r.monto_reembolso,
+        r.estado,
+        r.fecha_solicitud,
+        r.notas_admin,
+        p.nombre as producto_nombre
+    FROM refunds r
+    JOIN purchase_info pi ON r.purchase_id = pi.purchase_id
+    JOIN products p ON pi.product_id = p.product_id
+    WHERE r.user_id = %s
+    ORDER BY r.fecha_solicitud DESC
+""", (user_id,))
+        
+        reembolsos = cursor.fetchall()
+        
+        return {"success": True, "reembolsos": reembolsos}
+        
+    except Exception as e:
+        print(f"Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# Pedidos que pueden pedir reembolso
+@app.get("/api/refunds/pedidos-elegibles")
+def obtener_pedidos_elegibles(user_id: int):
+    conn = get_connection()
+    if not conn:
+        raise HTTPException(status_code=500, detail="Error de conexión")
+
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute("""
+            SELECT 
+                p.purchase_id,
+                p.fecha,
+                p.total,
+                p.estado
+            FROM purchase p
+            LEFT JOIN refunds r ON p.purchase_id = r.purchase_id 
+                AND r.estado != 'Rechazado'
+            WHERE p.user_id = %s 
+                AND r.refund_id IS NULL
+            ORDER BY p.fecha DESC
+            LIMIT 20
+        """, (user_id,))
+        
+        pedidos = cursor.fetchall()
+        
+        return {"success": True, "pedidos": pedidos}
+        
+    except Exception as e:
+        print(f"Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        conn.close()
