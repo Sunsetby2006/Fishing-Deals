@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Reembolsos - Fishing Deals</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            background-color: #003399;
+            padding: 15px 20px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-text {
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .header-icons i {
+            margin-left: 20px;
+            cursor: pointer;
+            font-size: 1.3rem;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .tab.active {
+            background: #003399;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .reembolso-card {
+            background: white;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+        }
+
+        .estado {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+        }
+
+        .pendiente { background: #fff3cd; color: #856404; }
+        .aprobado { background: #d4edda; color: #155724; }
+        .rechazado { background: #f8d7da; color: #721c24; }
+        .procesado { background: #d1ecf1; color: #0c5460; }
+
+        .pedido-item {
+            border: 2px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .pedido-item:hover {
+            border-color: #003399;
+            background: #f0f8ff;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: #003399;
+            color: white;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            min-height: 100px;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 50px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo-text" onclick="location.href='home.html'">Fishing Deals</div>
+        <div class="header-icons">
+            <i class="fas fa-user" onclick="location.href='home.html'"></i>
+            <i class="far fa-star" onclick="location.href='wishlist.html'"></i>
+            <i class="fas fa-shopping-cart" onclick="location.href='carrito.html'"></i>
+        </div>
+    </header>
+
+    <div class="container">
+        <h1>Reembolsos</h1>
+
+        <div class="tabs">
+            <button class="tab active" onclick="cambiarTab('lista')">Mis Reembolsos</button>
+            <button class="tab" onclick="cambiarTab('nuevo')">Solicitar</button>
+        </div>
+
+        <div id="lista" class="tab-content active">
+            <div id="lista-reembolsos"></div>
+        </div>
+
+        <div id="nuevo" class="tab-content">
+            <div id="pedidos-disponibles"></div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <h2>Solicitar Reembolso</h2>
+            <div id="info-pedido"></div>
+            <br>
+            <label>Motivo:</label>
+            <textarea id="motivo" maxlength="300" placeholder="Explica por qué..."></textarea>
+            <br><br>
+            <button class="btn btn-primary" onclick="enviarReembolso()">Enviar</button>
+            <button class="btn" onclick="cerrarModal()">Cancelar</button>
+        </div>
+    </div>
+
+    <script>
+        const API = "http://127.0.0.1:8000/api";
+        const user = JSON.parse(localStorage.getItem('user'));
+        let pedidoActual = null;
+
+        if (!user) {
+            alert('Inicia sesión');
+            location.href = 'home.html';
+        }
+
+        function cambiarTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tab).classList.add('active');
+            
+            if (tab === 'nuevo') cargarPedidos();
+        }
+
+        // Cargar mis reembolsos
+        async function cargarReembolsos() {
+            const res = await fetch(`${API}/refunds/mis-reembolsos?user_id=${user.user_id}`);
+            const data = await res.json();
+            
+            const container = document.getElementById('lista-reembolsos');
+            
+            if (!data.reembolsos || data.reembolsos.length === 0) {
+                container.innerHTML = '<div class="empty"><p>No tienes reembolsos</p></div>';
+                return;
+            }
+
+            container.innerHTML = data.reembolsos.map(r => `
+    <div class="reembolso-card">
+        <div style="display: flex; justify-content: space-between;">
+            <h3>Reembolso #${r.refund_id}</h3>
+            <span class="estado ${r.estado.toLowerCase()}">${r.estado}</span>
+        </div>
+        <p><strong>Pedido:</strong> #${r.purchase_id}</p>
+        <p><strong>Producto:</strong> ${r.producto_nombre}</p>
+        <p><strong>Monto:</strong> $${r.monto_reembolso}</p>
+        <p><strong>Fecha:</strong> ${new Date(r.fecha_solicitud).toLocaleDateString()}</p>
+        <p><strong>Motivo:</strong> ${r.motivo}</p>
+        ${r.notas_admin ? `<p><strong>Respuesta:</strong> ${r.notas_admin}</p>` : ''}
+    </div>
+`).join('');
+        }
+
+        // Cargar pedidos disponibles
+        async function cargarPedidos() {
+            const res = await fetch(`${API}/refunds/pedidos-elegibles?user_id=${user.user_id}`);
+            const data = await res.json();
+            
+            const container = document.getElementById('pedidos-disponibles');
+            
+            if (!data.pedidos || data.pedidos.length === 0) {
+                container.innerHTML = '<div class="empty"><p>No hay pedidos elegibles</p></div>';
+                return;
+            }
+
+            container.innerHTML = '<h3>Selecciona un pedido:</h3>' + 
+                data.pedidos.map(p => `
+                    <div class="pedido-item" onclick='seleccionarPedido(${JSON.stringify(p)})'>
+                        <strong>Pedido #${p.purchase_id}</strong> - $${p.total}
+                        <br>
+                        <small>Fecha: ${new Date(p.fecha).toLocaleDateString()}</small>
+                    </div>
+                `).join('');
+        }
+
+        function seleccionarPedido(pedido) {
+            pedidoActual = pedido;
+            document.getElementById('info-pedido').innerHTML = `
+                <strong>Pedido #${pedido.purchase_id}</strong><br>
+                Total: $${pedido.total}
+            `;
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function cerrarModal() {
+            document.getElementById('modal').classList.remove('active');
+            document.getElementById('motivo').value = '';
+        }
+
+        async function enviarReembolso() {
+            const motivo = document.getElementById('motivo').value;
+            
+            if (!motivo) {
+                alert('Escribe el motivo');
+                return;
+            }
+
+            const res = await fetch(`${API}/refunds/solicitar`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    user_id: user.user_id,
+                    purchase_id: pedidoActual.purchase_id,
+                    motivo: motivo
+                })
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                alert('Reembolso solicitado');
+                cerrarModal();
+                cambiarTab('lista');
+                cargarReembolsos();
+            } else {
+                alert('Error: ' + data.detail);
+            }
+        }
+
+        cargarReembolsos();
+    </script>
+</body>
+</html>
+
